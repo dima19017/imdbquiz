@@ -35,4 +35,7 @@ code tmdbService.js
 code frontend/package.json
 # добавили прокси http://localhost:3000/api/players
 
-# пробуем сделать главный экран в новой ветке
+# пробуем сделать главный экран в новой ветке mainscreen
+code frontend/src/components/MainScreen.js
+code frontend/src/App.js
+code ../frontend/src/contexts/LanguageContext.js

@@ -1,0 +1,72 @@
+/* src/components/MainScreen.css */
+
+.main-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+  padding: 10px;
+  position: relative;
+  background-color: #f0f0f0;
+}
+
+/* Обертка для кнопок "Main Menu" и "Profile" */
+.top-right-buttons {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+/* Кнопки "Main Menu" и "Profile" */
+.main-menu-button, .profile-button {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Выбор языка слева сверху */
+.language-select {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  font-size: 16px;
+}
+
+/* Центрирование кнопок */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+/* Стили кнопок */
+.guest-button, .login-button {
+  padding: 10px 20px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.info-footer {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  font-size: 14px;
+  color: #666;
+  display: flex;
+  gap: 10px; /* Отступ между версией и хэшем */
+  align-items: center; /* Центрирование текста по вертикали */
+  background-color: rgba(255, 255, 255, 0.8); /* Полупрозрачный фон для улучшения видимости */
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+
+
+/* Убедитесь, что текст внутри info-footer всегда отображается */
+.info-footer span {
+  display: block;
+}
