@@ -1,0 +1,25 @@
+# вопрос про содержание Index.js
+
+
+mkdir backend frontend
+#конфигурим основу для backend
+cd backend/
+npm init -y
+npm install express
+npm install --save-dev nodemon
+npm install dotenv
+vi package.json
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+code index.js
+code .env
+npm run dev
+#конфигурим основу фронтэнд
+
+cd imdbquiz
+npx create-react-app frontend
+cd frontend/
+code .env
