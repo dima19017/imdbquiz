@@ -4,19 +4,19 @@
     https://github.com/dima19017/imdbquiz
     - [x] Создать базовую структуру проекта: backend и frontend.
     movie-quiz-game/
-    │
-    ├── backend/
-    │   ├── .env
-    │   ├── index.js
-    │   ├── package.json
-    │   └── node_modules/
-    │
-    └── frontend/
-        ├── .env
-        ├── package.json
-        ├── node_modules/
-        └── public/
-        └── src/
+    │  
+    ├── backend/  
+    │   ├── .env  
+    │   ├── index.js  
+    │   ├── package.json  
+    │   └── node_modules/  
+    │  
+    └── frontend/  
+        ├── .env  
+        ├── package.json  
+        ├── node_modules/  
+        └── public/  
+        └── src/  
     - [x] Настроить сервер локальной разработки (например, на Node.js для backend и React для frontend).
     - [ ] Подключить базу данных (например, MongoDB/PostgreSQL) для хранения данных об игроках, сессиях и результатах.
     для данных о фильмах - API tmDB
