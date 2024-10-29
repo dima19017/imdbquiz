@@ -39,3 +39,10 @@ code frontend/package.json
 code frontend/src/components/MainScreen.js
 code frontend/src/App.js
 code ../frontend/src/contexts/LanguageContext.js
+
+mkdir ../data/
+sudo apt update
+sudo apt install sqlite3
+chmod 755 data
+chmod 644 data/imdbquiz.db
+npm install sqlite3
