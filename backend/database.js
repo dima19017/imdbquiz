@@ -1,16 +1,30 @@
 // backend/database.js
-const sqlite3 = require('sqlite3').verbose();           // Здесь создается подключение к базе данных imdbquiz.db, которая хранится в папке data.
-const path = require('path');                           // Импортируем модуль path
 
-const dbPath = path.resolve(__dirname, '../data', "imdbquiz.db");
-const db = new sqlite3.Database(dbPath);
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('../data/imdbquiz.db');
 
+// Создание таблиц, если они не существуют
 db.serialize(() => {
-  db.run("CREATE TABLE IF NOT EXISTS players (id INTEGER PRIMARY KEY, name TEXT, avatar TEXT, email TEXT)");
-  db.run("CREATE TABLE IF NOT EXISTS sessions (id INTEGER PRIMARY KEY, playerId INTEGER, startTime TEXT, FOREIGN KEY(playerId) REFERENCES players(id))");
-  db.run("CREATE TABLE IF NOT EXISTS results (id INTEGER PRIMARY KEY, sessionId INTEGER, score INTEGER, FOREIGN KEY(sessionId) REFERENCES sessions(id))");
-  console.log('Connecting to database at:', dbPath);
+    // Таблица для хранения информации о сессиях
+    db.run(`
+        CREATE TABLE IF NOT EXISTS sessions (
+            id TEXT PRIMARY KEY,           -- Уникальный идентификатор сессии
+            status TEXT DEFAULT 'waiting', -- Статус сессии (например, 'waiting', 'active', 'completed')
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // Таблица для хранения информации о гостевых игроках
+    db.run(`
+        CREATE TABLE IF NOT EXISTS guest_players (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,            -- Имя гостевого игрока
+            avatar TEXT,                   -- URL аватара игрока
+            session_id TEXT NOT NULL,      -- Идентификатор сессии, к которой принадлежит игрок
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+        )
+    `);
 });
 
-// Этот модуль экспортирует объект db, что позволяет другим файлам взаимодействовать с базой данных через этот подключенный файл
 module.exports = db;

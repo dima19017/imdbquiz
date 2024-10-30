@@ -1,38 +1,111 @@
-// frontend/components/GuestModal.js
-import React, { useState } from "react"; // Импорт React и хуков useState для работы с локальным состоянием
-// import './GuestLoginModal.css';
+import React, { useState } from "react";
+import { useNavigate } from 'react-router-dom';
 
-const GuestLoginModal = ({ onClose, onLogin }) => { // Компонент принимает 2 пропса для закрытия окна и для обработки данных гостя
-    const [name, setName] = useState('');     // Локальное состояние для хранения имени гостя
-    const [avatar, setAvatar] = useState(''); // Локальное состояние для хранения url аватара гостя
+const GuestLoginModal = ({ onClose }) => {
+    const [name, setName] = useState('');
+    const [avatar, setAvatar] = useState('');
+    const [isCreatingRoom, setIsCreatingRoom] = useState(true);
+    const [sessionInput, setSessionInput] = useState('');
+    const navigate = useNavigate();
 
-    const handleLogin = () => { // вызывается при нажатии кнопки "Join Game"
-        if (name && avatar) {
-            onLogin({ name, avatar});
-            onClose();
-        } else {
+    const handleLogin = () => {
+        console.log("Attempting to login with:", { name, avatar, isCreatingRoom, sessionInput });
+        
+        if (!name || !avatar) {
             alert("Please enter a name and choose an avatar.");
+            return;
+        }
+    
+        if (isCreatingRoom) {
+            console.log("Creating a new session...");
+            fetch('/api/create-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, avatar })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const session_id = data.session_id;
+                console.log("Navigating to session with ID:", session_id); // Проверка перед navigate
+                navigate(`/session/${session_id}`); // Навигация к сессии
+                console.log("Navigation should have triggered"); // Проверка после navigate
+            })
+            .catch(error => console.error('Error creating session:', error));
+        } else {
+            const session_id = sessionInput.trim();
+            if (!session_id) {
+                alert("Please enter a valid session ID.");
+                return;
+            }
+    
+            console.log("Joining an existing session with ID:", session_id);
+            fetch('/api/join-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, avatar, session_id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log("Navigating to session with ID:", session_id); // Проверка перед navigate
+                    navigate(`/session/${session_id}`);
+                    console.log("Navigation should have triggered"); // Проверка после navigate
+                } else {
+                    alert(data.error);
+                }
+            })
+            .catch(error => console.error('Error joining session:', error));
         }
     };
+    
 
     return (
-        <div className="modal-backdrop"> {/* обертка модального окна, создающая затемненный фон */}
-            <div className="modal-content"> {/* Контент модального окна */}
-                <h2>Enter Guest Details</h2> {/* Поле ввода для имени гостя */}
+        <div className="modal-backdrop">
+            <div className="modal-content">
+                <h2>Enter Guest Details</h2>
                 <input
                     type="text"
                     placeholder="Enter your name"
                     value={name}
-                    onChange={(e) => setName(e.target.value)} // onChange - событие срабатывает когда значение в поле ввода изменяется. (e) => setName(e.target.value) - обновляет name в компоненте
+                    onChange={(e) => setName(e.target.value)}
                 />
-                <input                                       //Поле ввода для URL аватара
+                <input
                     type="text"
                     placeholder="Enter avatar URL"
                     value={avatar}
                     onChange={(e) => setAvatar(e.target.value)}
                 />
-                <button onClick={handleLogin}>Join Game</button> {/* Кнопка для подтверждения ввода и начала игры */}
-                <button onClick={onClose}>Cancel</button> {/* Кнопка для отмены и закрытия модального окна */}
+
+                <div>
+                    <label>
+                        <input
+                            type="radio"
+                            checked={isCreatingRoom}
+                            onChange={() => setIsCreatingRoom(true)}
+                        />
+                        Create Room
+                    </label>
+                    <label>
+                        <input
+                            type="radio"
+                            checked={!isCreatingRoom}
+                            onChange={() => setIsCreatingRoom(false)}
+                        />
+                        Join Room
+                    </label>
+                </div>
+
+                {!isCreatingRoom && (
+                    <input
+                        type="text"
+                        placeholder="Enter session ID"
+                        value={sessionInput}
+                        onChange={(e) => setSessionInput(e.target.value)}
+                    />
+                )}
+
+                <button onClick={handleLogin}>Confirm</button>
+                <button onClick={onClose}>Cancel</button>
             </div>
         </div>
     );

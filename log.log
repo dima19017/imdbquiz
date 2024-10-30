@@ -46,3 +46,19 @@ sudo apt install sqlite3
 chmod 755 data
 chmod 644 data/imdbquiz.db
 npm install sqlite3
+
+
+cd backend/
+npm install uuid
+nvm install node
+npm install socket.io
+npm install socket.io-client
+npm install --save-dev nodemon
+npm install cors
+
+
+cd frontend/
+npm install react-router-dom
+npm install socket.io-client
+
+

@@ -1,55 +1,19 @@
 // frontend/src/App.js
 
 import React from 'react';
-// import { LanguageProvider } from './contexts/LanguageContext';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import MainScreen from './components/MainScreen';
+import SessionScreen from './components/SessionScreen'; // Подключаем новый компонент
 
 function App() {
   return (
-    <MainScreen />
+    <Router>
+      <Routes>
+        <Route path="/" element={<MainScreen />} />
+        <Route path="/session/:sessionId" element={<SessionScreen />} /> {/* Добавляем маршрут для сессии */}
+      </Routes>
+    </Router>
   );
 }
 
 export default App;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// import logo from './logo.svg';
-// import './App.css';
-
-// function App() {
-//   return (
-//     <div className="App">
-//       <header className="App-header">
-//         <img src={logo} className="App-logo" alt="logo" />
-//         <p>
-//           Edit <code>src/App.js</code> and save to reload.
-//         </p>
-//         <a
-//           className="App-link"
-//           href="https://reactjs.org"
-//           target="_blank"
-//           rel="noopener noreferrer"
-//         >
-//           Learn React
-//         </a>
-//       </header>
-//     </div>
-//   );
-// }
-
-// export default App;
