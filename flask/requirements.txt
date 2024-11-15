@@ -4,4 +4,4 @@ Flask-Session
 pytz
 requests
 Werkzeug
-sqlite3
+Flask-socketio

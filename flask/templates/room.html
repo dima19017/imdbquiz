@@ -1,0 +1,36 @@
+<!-- /templates/room.html -->
+{% extends "layout.html" %}
+
+{% block title %}
+    Room {{ room_id }}
+{% endblock %}
+
+{% block main %}
+    <h2>Room {{ room_id }}</h2>
+    <p>Players in the room:</p>
+    <ul id="players">
+        {% for player in players %}
+            <li>{{ player }}</li>
+        {% endfor %}
+    </ul>
+    <button id="leaveRoom" class="btn btn-danger">Leave Room</button>
+    
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        var room_id = "{{ room_id }}";
+
+        // Отправка сообщений в комнату
+        socket.emit('join', { room_id: room_id });
+
+        // Покидание комнаты
+        document.getElementById('leaveRoom').onclick = function() {
+            socket.emit('leave', { room_id: room_id });
+            window.location.href = "/";
+        };
+
+        // Обработка сообщений в комнате
+        socket.on('message', function(data) {
+            alert(data.msg);
+        });
+    </script>
+{% endblock %}

@@ -4,17 +4,24 @@ import os
 
 from functools import wraps
 from cs50 import SQL
-from flask import Flask, flash, redirect, render_template, request, session
+from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask_socketio import SocketIO, join_room, leave_room, send
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 import sqlite3
+import random
 
 # Конфигурируем приложение
 app = Flask(__name__)
 
+socketio = SocketIO(app)
+
+rooms = {}
+
 # Конфигурируем сессии использовать ФС (вместо подписанных куки)
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_FILE_THRESHOLD"] = 100
 Session(app)
 
 # Конфигурируем базу данных
@@ -140,3 +147,55 @@ def register():
 @login_required
 def profile():
     return apology("Page not found", code=404)
+
+# Обработчик для создания комнаты
+@app.route('/create_room', methods=['POST'])
+def create_room():
+    user_id = session.get('user_id')
+    room_id = 'room_' + str(len(rooms) + 1)  # Генерация ID комнаты
+    rooms[room_id] = {'creator': user_id, 'players': [user_id]}
+    session['room_id'] = room_id  # Сохраняем ID комнаты в сессии
+    return redirect(url_for('room', room_id=room_id))
+
+# Обработчик для подключения к комнате
+@app.route('/join_room', methods=['POST'])
+def join_room_route():
+    room_id = request.form['room_id']
+    user_id = session.get('user_id')
+    
+    if room_id in rooms:
+        rooms[room_id]['players'].append(user_id)
+        session['room_id'] = room_id  # Сохраняем ID комнаты в сессии
+        return redirect(url_for('room', room_id=room_id))
+    else:
+        return "Room not found", 404
+
+# Страница комнаты
+@app.route('/room/<room_id>')
+def room(room_id):
+    user_id = session.get('user_id')
+    if room_id in rooms:
+        return render_template('room.html', room_id=room_id, players=rooms[room_id]['players'], user_id=user_id)
+    else:
+        return "Room not found", 404
+
+# Обработчик для подключений через WebSocket
+@socketio.on('join')
+def on_join(data):
+    room_id = data['room_id']
+    user_id = session.get('user_id')
+    
+    join_room(room_id)
+    emit('message', {'msg': f'{user_id} has joined the room.'}, room=room_id)
+
+@socketio.on('leave')
+def on_leave(data):
+    room_id = data['room_id']
+    user_id = session.get('user_id')
+    
+    leave_room(room_id)
+    emit('message', {'msg': f'{user_id} has left the room.'}, room=room_id)
+
+if __name__ == '__main__':
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
