@@ -1,3 +1,5 @@
+
+# app.py
 import os
 
 from functools import wraps
@@ -133,3 +135,8 @@ def register():
             return apology("Passwords do not match", code=400)
     else:
         return render_template("register.html")
+
+@app.route("/profile")
+@login_required
+def profile():
+    return apology("Page not found", code=404)
