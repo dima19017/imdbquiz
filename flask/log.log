@@ -1,0 +1,5 @@
+sudo apt install python3-flask
+pip install cs50
+pip install Flask
+pip install Flask-Session
+pip install Werkzeug

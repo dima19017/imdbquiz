@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Main Menu
+{% endblock %}
+
+{% block main %}
+    <h2>Main Menu</h2>
+    <p>User = {{ user_id }}</p>
+    <div>
+    <button class="btn btn-primary" type="submit">Create Room</button>
+    <button class="btn btn-primary" type="submit">Join Room</button>
+    </div>
+{% endblock %}
