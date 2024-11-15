@@ -1,0 +1,76 @@
+/* /frontend/src/components/Layout.css */
+.layout-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Обеспечивает, что контейнер будет занимать весь экран */
+  }
+  
+  .header {
+    display: flex;
+    justify-content: space-between; /* Разделяет элементы по краям */
+    align-items: center;
+    padding: 15px 30px;
+    background-color: #f5f5f5; /* Светлый фон для header */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .header-left {
+    display: flex;
+    align-items: center;
+  }
+  
+  .language-switcher {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .language-icon {
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+  }
+  
+  .header-right {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+  }
+  
+  .menu-button, .profile-button {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .profile-icon {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .main-content {
+    flex-grow: 1; /* Контент будет занимать оставшееся пространство */
+    padding: 20px;
+  }
+  
+  .footer {
+    padding: 10px 30px;
+    background-color: #f5f5f5;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    text-align: right;
+  }
+  
+  .footer-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .github-link {
+    text-decoration: none;
+    color: #0073e6;
+  }
+  
+  .github-link:hover {
+    text-decoration: underline;
+  }
+  

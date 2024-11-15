@@ -1,8 +1,21 @@
 // backend/server.js
 const express = require('express');
-const router = express.Router();
-const guestRoutes = require('./routes/guest');
+const cors = require('cors');
+const dotenv = require('dotenv');
 
-router.use('/api', guestRoutes);       // Добавляем маршруты для гостевого входа
+// Инициализация dotenv для работы с переменными окружения
+dotenv.config();
 
-module.exports = router;
+const app = express();
+
+// Используем мидлвары
+app.use(cors());
+app.use(express.json());
+
+// Пример маршрута
+app.get('/api', (req, res) => {
+  res.json({ message: 'Hello from backend' });
+});
+
+// Экспортируем сервер для запуска
+module.exports = app;

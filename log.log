@@ -1,15 +1,13 @@
-// Фиксация версий: package-lock.json фиксирует точные версии всех установленных пакетов и их зависимостей. Это помогает избежать ситуаций, когда на разных машинах зависимости будут разных версий, что может вызвать непредсказуемое поведение.
-// Оптимизация установки: При последующем запуске npm install, package-lock.json помогает npm быстрее установить зависимости, так как файл содержит детальное описание всех пакетов.
-// Защита от несовместимых обновлений: Если какой-то пакет будет обновлен до несовместимой версии, package-lock.json сохранит текущую версию, обеспечивая стабильность проекта.
-
-
-mkdir backend frontend
-#конфигурим основу для backend
-cd backend/
+mkdir imdbquiz
+cd imdbquiz
+mkdir backend
+cd backend
 npm init -y
 npm install express
 npm install --save-dev nodemon
 npm install dotenv
+npm install cors
+
 vi package.json
   "scripts": {
     "start": "node index.js",
@@ -18,13 +16,27 @@ vi package.json
   },
 code index.js
 code .env
+code server.js
 npm run dev
-#конфигурим основу фронтэнд
 
 cd imdbquiz
 npx create-react-app frontend
 cd frontend/
+npm install dotenv
+npm install react-router-dom
 code .env
+code index.js
+code App.js
+mkdir photos
+mkdir components
+code components/Layout.js
+code components/HomePage.js
+
+
+Старый проект
+// Фиксация версий: package-lock.json фиксирует точные версии всех установленных пакетов и их зависимостей. Это помогает избежать ситуаций, когда на разных машинах зависимости будут разных версий, что может вызвать непредсказуемое поведение.
+// Оптимизация установки: При последующем запуске npm install, package-lock.json помогает npm быстрее установить зависимости, так как файл содержит детальное описание всех пакетов.
+// Защита от несовместимых обновлений: Если какой-то пакет будет обновлен до несовместимой версии, package-lock.json сохранит текущую версию, обеспечивая стабильность проекта.
 
 cd backend/
 npm install sqlite3

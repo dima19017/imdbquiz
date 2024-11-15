@@ -1,55 +1,18 @@
 // frontend/src/App.js
-
 import React from 'react';
-// import { LanguageProvider } from './contexts/LanguageContext';
-import MainScreen from './components/MainScreen';
+import { Route, Routes } from 'react-router-dom';  // Используем Routes вместо Switch
+import HomePage from './components/HomePage'; // Импортируем компонент главной страницы
 
-function App() {
+const App = () => {
   return (
-    <MainScreen />
+    <div className="App">
+      <Routes>
+        {/* Определяем маршруты */}
+        <Route exact path="/" element={<HomePage />} />  {/* Главная страница */}
+        {/* Другие маршруты можно добавить здесь */}
+      </Routes>
+    </div>
   );
-}
+};
 
 export default App;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// import logo from './logo.svg';
-// import './App.css';
-
-// function App() {
-//   return (
-//     <div className="App">
-//       <header className="App-header">
-//         <img src={logo} className="App-logo" alt="logo" />
-//         <p>
-//           Edit <code>src/App.js</code> and save to reload.
-//         </p>
-//         <a
-//           className="App-link"
-//           href="https://reactjs.org"
-//           target="_blank"
-//           rel="noopener noreferrer"
-//         >
-//           Learn React
-//         </a>
-//       </header>
-//     </div>
-//   );
-// }
-
-// export default App;
