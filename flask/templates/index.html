@@ -25,7 +25,7 @@
 
         // Создание комнаты
         document.getElementById('createRoom').onclick = function() {
-            fetch('/create_room', { method: 'POST' })
+            fetch('/handle_create_room', { method: 'POST' })
                 .then(response => response.redirected && window.location.replace(response.url));
         }
 
@@ -33,7 +33,7 @@
         document.getElementById('joinRoom').onclick = function() {
             var roomID = document.getElementById('roomID').value;
             if (roomID) {
-                fetch('/join_room', {
+                fetch('/handle_join_room', {
                     method: 'POST',
                     body: new URLSearchParams({ room_id: roomID })
                 })

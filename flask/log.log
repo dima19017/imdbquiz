@@ -3,3 +3,7 @@ pip install cs50
 pip install Flask
 pip install Flask-Session
 pip install Werkzeug
+
+открыл порт 5000 на windows
+в powershell netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=5000 connectaddress=172.18.219.234 connectport=5000 прокинул порт
+pip install flask-shell
