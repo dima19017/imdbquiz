@@ -1,23 +1,20 @@
 
 # app.py
 import os
-
+import sqlite3
+import random
+import requests
 from functools import wraps
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session, url_for, jsonify
 from flask_socketio import SocketIO, join_room, leave_room, send, emit
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
-import sqlite3
-import random
-import requests
 
 # Конфигурируем приложение
 app = Flask(__name__)
-
 socketio = SocketIO(app)
-
-rooms = {}
+db = SQL("sqlite:///imdbquiz.db")
 
 # Конфигурируем сессии использовать ФС (вместо подписанных куки)
 app.config["SESSION_PERMANENT"] = False
@@ -25,11 +22,11 @@ app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_FILE_THRESHOLD"] = 100
 Session(app)
 
-TMDB_API_KEY = 'your_tmdb_api_key'
+TMDB_API_KEY = '69c6b9362872f8b7d98effec5badddd6'
 TMDB_API_URL = 'https://api.themoviedb.org/3'
+PROXY = "http://eWSWGwq8:dWAf82nT@166.1.128.144:64044"
 
-# Конфигурируем базу данных
-db = SQL("sqlite:///imdbquiz.db")
+rooms = {}
 
 def apology(message, code=400):
     """Render message as an apology to user with a custom meme image."""
@@ -81,13 +78,11 @@ def after_request(response):
 @login_required
 def index():
     user_id = session["user_id"]
-
     return render_template("index.html", user_id=user_id)
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """Log user in"""
-
     session.clear()
 
     if request.method == "POST":
@@ -99,9 +94,7 @@ def login():
         rows = db.execute("SELECT * FROM users WHERE username = ?", request.form.get("username"))
         pas = request.form.get("password")
 
-        if len(rows) != 1 or not check_password_hash(
-            rows[0]["hash"], pas
-        ):
+        if len(rows) != 1 or not check_password_hash(rows[0]["hash"], pas):
             return apology("invalid username and/or password", 403)
         session["user_id"] = rows[0]["id"]
 
@@ -124,21 +117,18 @@ def register():
         if not username:
             return apology("Username is empty", code=400)
         if not password:
-            return apology("password is empty", code=400)
-        if password == confirmation:
-            hash = generate_password_hash(password, method='scrypt', salt_length=16)
-            try:
-                with sqlite3.connect("imdbquiz.db") as conn:
-                    cursor = conn.cursor()
-                    cursor.execute("INSERT INTO users (username, hash) VALUES(?, ?)", (username, hash))
-                    conn.commit()
-                return redirect("/")
-            except sqlite3.IntegrityError:
-                # return apology("Username is already taken", code=400)
-                return apology("Username is already taken", code=400)
-        else:
-            # return apology("Passwords do not match", code=400)
+            return apology("Password is empty", code=400)
+        if password != confirmation:
             return apology("Passwords do not match", code=400)
+        hash = generate_password_hash(password, method='scrypt', salt_length=16)
+        try:
+            with sqlite3.connect("imdbquiz.db") as conn:
+                cursor = conn.cursor()
+                cursor.execute("INSERT INTO users (username, hash) VALUES(?, ?)", (username, hash))
+                conn.commit()
+            return redirect("/")
+        except sqlite3.IntegrityError:
+            return apology("Username is already taken", code=400)
     else:
         return render_template("register.html")
 
@@ -268,12 +258,34 @@ def on_start_game(data):
         else:
             print(f"User {user_id} tried to start the game without being the creator.")
 
-
 @app.route('/api/rooms', methods=['GET'])
 def get_rooms():
-    # Вернем содержимое rooms в формате JSON
     return jsonify(rooms)
 
+@app.route('/random_movie', methods=['GET'])
+def random_movie():
+    page = random.randint(1, 20)
+
+    # Формируем URL с параметрами запроса
+    url = f"{TMDB_API_URL}/movie/popular?api_key={TMDB_API_KEY}&language=en-US&page={page}"
+
+    # Отправляем GET-запрос через requests
+    try:
+        response = requests.get(url, proxies={"http": PROXY, "https": PROXY} if PROXY else None)
+        response.raise_for_status()  # Проверка успешности запроса
+
+        movies_data = response.json()  # Парсим JSON
+        movies = movies_data.get('results', [])
+
+        if movies:
+            random_movie = random.choice(movies)  # Случайный фильм из полученного списка
+            return jsonify(random_movie)  # Отправляем случайный фильм в формате JSON
+        else:
+            return jsonify({'error': 'No movies found'}), 404
+
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': f'Error fetching data from TMDB: {str(e)}'}), 500
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+

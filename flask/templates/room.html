@@ -18,7 +18,9 @@
     <!-- Кнопка "Готов" для всех игроков -->
     <button id="readyButton" class="btn btn-success">Ready</button>
     <!-- Кнопка "Начать игру" для создателя -->
-    <button id="startGameButton" class="btn btn-primary" disabled>Start Game</button>
+    {% if user_id == creator_id %}
+        <button id="startGameButton" class="btn btn-primary" disabled>Start Game</button>
+    {% endif %}
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
     <script>
