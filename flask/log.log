@@ -7,3 +7,7 @@ pip install Werkzeug
 открыл порт 5000 на windows
 в powershell netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=5000 connectaddress=172.18.219.234 connectport=5000 прокинул порт
 pip install flask-shell
+
+curl -X GET "https://api.themoviedb.org/3/movie/popular?api_key=eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI2OWM2YjkzNjI4NzJmOGI3ZDk4ZWZmZWM1YmFkZGRkNiIsIm5iZiI6MTczMTc3NTk2MC41NzA4NDA0LCJzdWIiOiI2NzFkZmY1Nzc2OTEwN2Q3N2I0ODA5MmMiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.GeVRHqoKThIpLXc5r5JUFAoLUELX6AwRf2SONNQ2oaQ&language=en-US&page=1"
+
+curl -X GET "https://api.themoviedb.org/3/movie/popular?api_key=69c6b9362872f8b7d98effec5badddd6&language=en-US&page=1"

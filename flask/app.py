@@ -10,6 +10,7 @@ from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 import sqlite3
 import random
+import requests
 
 # Конфигурируем приложение
 app = Flask(__name__)
@@ -23,6 +24,9 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_FILE_THRESHOLD"] = 100
 Session(app)
+
+TMDB_API_KEY = 'your_tmdb_api_key'
+TMDB_API_URL = 'https://api.themoviedb.org/3'
 
 # Конфигурируем базу данных
 db = SQL("sqlite:///imdbquiz.db")
