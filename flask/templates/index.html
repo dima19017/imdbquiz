@@ -1,15 +1,45 @@
-<!-- /templates/index.html -->
 {% extends "layout.html" %}
-
 {% block title %}
-    Main Menu
+    Log In
 {% endblock %}
-
 {% block main %}
     <h2>Main Menu</h2>
     <p>User = {{ user_id }}</p>
+
+    <!-- Кнопка для создания комнаты -->
     <div>
-    <button class="btn btn-primary" type="submit">Create Room</button>
-    <button class="btn btn-primary" type="submit">Join Room</button>
+        <button id="createRoom" class="btn btn-primary">Create Room</button>
     </div>
+
+    <!-- Поле для ввода ID комнаты для подключения -->
+    <div>
+        <input type="text" id="roomID" placeholder="Enter Room ID">
+        <button id="joinRoom" class="btn btn-primary">Join Room</button>
+    </div>
+
+    <div id="roomInfo"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        // Создание комнаты
+        document.getElementById('createRoom').onclick = function() {
+            fetch('/handle_create_room', { method: 'POST' })
+                .then(response => response.redirected && window.location.replace(response.url));
+        }
+
+        // Подключение к комнате
+        document.getElementById('joinRoom').onclick = function() {
+            var roomID = document.getElementById('roomID').value;
+            if (roomID) {
+                fetch('/handle_join_room', {
+                    method: 'POST',
+                    body: new URLSearchParams({ room_id: roomID })
+                })
+                .then(response => response.redirected && window.location.replace(response.url));
+            }
+        }
+    </script>
 {% endblock %}
+

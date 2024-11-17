@@ -21,3 +21,32 @@ nav .navbar-brand .green
 {
     color: #2e944b;
 }
+
+.btn-startgame {
+    background-color: #28a745;  /* Зеленый цвет */
+    color: white;               /* Белый текст */
+    border: none;               /* Убираем границу */
+    padding: 10px 20px;         /* Отступы внутри кнопки */
+    font-size: 16px;            /* Размер шрифта */
+    font-weight: bold;          /* Жирный текст */
+    border-radius: 5px;         /* Скругленные углы */
+    cursor: pointer;           /* Курсор в виде указателя */
+    transition: background-color 0.3s ease, transform 0.3s ease; /* Плавные переходы */
+}
+
+/* Эффект при наведении на кнопку */
+.btn-startgame:hover {
+    background-color: #218838;  /* Темно-зеленый при наведении */
+    transform: scale(1.05);      /* Легкое увеличение кнопки */
+}
+
+/* Эффект при нажатии на кнопку */
+.btn-startgame:active {
+    background-color: #1e7e34;  /* Еще более темный зеленый при нажатии */
+    transform: scale(1);         /* Возвращаем обычный размер */
+}
+
+/* Эффект фокуса */
+.btn-startgame:focus {
+    outline: none;               /* Убираем контур */
+}
