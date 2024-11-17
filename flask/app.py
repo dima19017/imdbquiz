@@ -11,6 +11,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import sqlite3
 import random
 import requests
+import subprocess
+import json
 
 # Конфигурируем приложение
 app = Flask(__name__)
@@ -25,8 +27,10 @@ app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_FILE_THRESHOLD"] = 100
 Session(app)
 
-TMDB_API_KEY = 'your_tmdb_api_key'
+TMDB_API_KEY = '69c6b9362872f8b7d98effec5badddd6'
 TMDB_API_URL = 'https://api.themoviedb.org/3'
+PROXY = "http://eWSWGwq8:dWAf82nT@166.1.128.144:64044"
+
 
 # Конфигурируем базу данных
 db = SQL("sqlite:///imdbquiz.db")
@@ -271,9 +275,61 @@ def on_start_game(data):
 
 @app.route('/api/rooms', methods=['GET'])
 def get_rooms():
-    # Вернем содержимое rooms в формате JSON
     return jsonify(rooms)
 
+@app.route('/random_movie', methods=['GET'])
+def random_movie():
+    url = f'{TMDB_API_URL}/movie/popular'
+    params = {
+        'api_key': TMDB_API_KEY,
+        'language': 'en-US',  # Язык ответа
+        'page': random.randint(1, 20)  # Случайная страница (1-20)
+    }
+    proxies = {}
+    if PROXY:
+        proxies = {
+            'http': 'http://eWSWGwq8:dWAf82nT@166.1.128.144:64044',
+            'https': 'https://eWSWGwq8:dWAf82nT@166.1.128.144:64044'
+        }
+    try:
+        response = requests.get(url, params=params, proxies=proxies)
+        if response.status_code == 200:
+            movies_data = response.json()
+            movies = movies_data.get('results', [])
+            if movies:
+                random_movie = random.choice(movies)
+                return jsonify(random_movie)  # Отправляем случайный фильм в формате JSON
+            else:
+                return jsonify({'error': 'No movies found'}), 404
+        else:
+            return jsonify({'error': 'Unable to fetch movies'}), 500
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': f'Error connecting to TMDB: {str(e)}'}), 500
+
+@app.route('/random_movie_curl', methods=['GET'])
+def random_movie_curl():
+    page = random.randint(1, 20)
+
+    curl_command = [
+        "curl", 
+        "-x", PROXY,  # Прокси-сервер
+        f"{TMDB_API_URL}/movie/popular?api_key={TMDB_API_KEY}&language=en-US&page={page}"  # Параметры запроса
+    ]
+
+    try:
+        result = subprocess.run(curl_command, capture_output=True, text=True, check=True)
+
+        movies_data = json.loads(result.stdout)
+        movies = movies_data.get('results', [])
+
+        if movies:
+            random_movie = random.choice(movies)  # Случайный фильм из полученного списка
+            return jsonify(random_movie)  # Отправляем случайный фильм в формате JSON
+        else:
+            return jsonify({'error': 'No movies found'}), 404
+
+    except subprocess.CalledProcessError as e:
+        return jsonify({'error': f'Error executing curl: {e.stderr}'}), 500
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
