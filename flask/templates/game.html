@@ -1,0 +1,92 @@
+<!-- /templates/game.html -->
+{% extends "layout.html" %}
+
+{% block title %}
+    Game - Room {{ room_id }}
+{% endblock %}
+
+{% block main %}
+    <h2>Guess the Movie</h2>
+
+    <div id="movieHints">
+        <p><strong>Release Date:</strong> <span id="releaseDate"></span></p>
+        <p><strong>Vote Average:</strong> <span id="voteAverage"></span></p>
+        <p><strong>Overview:</strong> <span id="overview"></span></p>
+    </div>
+
+    <input type="text" id="movieAnswer" placeholder="Enter your guess here" disabled>
+    <button id="submitAnswer" class="btn btn-primary" disabled>Submit Answer</button>
+    
+    <div id="timer">30</div>
+
+    <ul id="playersList">
+        <!-- Список игроков, отображаем их ответы -->
+    </ul>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        var room_id = "{{ room_id }}";
+        var movie_id = "{{ movie_id }}";  // ID фильма, который был выбран для игры
+
+        socket.on('show_hints', function(data) {
+            console.log('Received hints:', data); // Логируем данные для проверки
+            if (data) {
+                document.getElementById('releaseDate').textContent = data.release_date || 'N/A';
+                document.getElementById('voteAverage').textContent = data.vote_average || 'N/A';
+                document.getElementById('overview').textContent = data.overview || 'N/A';
+
+                // Разблокируем поле ввода и кнопку
+                document.getElementById('movieAnswer').disabled = false;
+                document.getElementById('submitAnswer').disabled = false;
+            } else {
+                console.error('Hints data is missing or invalid:', data);
+            }
+        });
+
+
+        // Таймер игры
+        var timeLeft = 30;
+        var timerInterval = setInterval(function() {
+            if (timeLeft > 0) {
+                document.getElementById('timer').innerText = timeLeft;
+                timeLeft--;
+            } else {
+                clearInterval(timerInterval);
+                alert("Time's up!");
+                // Отправляем на сервер сигнал о завершении времени
+                socket.emit('end_game', { room_id: room_id });
+            }
+        }, 1000);
+
+        // Отправка ответа игроком
+        document.getElementById('submitAnswer').addEventListener('click', function() {
+            var answer = document.getElementById('movieAnswer').value;
+            socket.emit('submit_answer', { room_id: room_id, answer: answer });
+        });
+
+        // Обработка ответов игроков
+        socket.on('player_answered', function(data) {
+            var playersList = document.getElementById('playersList');
+            var li = document.createElement('li');
+            li.textContent = data.user_id + ": " + (data.is_correct ? "Correct" : "Wrong");
+            playersList.appendChild(li);
+        });
+
+        // Результаты игры по завершению
+        socket.on('game_results', function(data) {
+            alert("Game Over! Correct players: " + data.correct_players.join(", "));
+            alert("Incorrect players: " + data.incorrect_players.join(", "));
+            // Возвращаем игроков в комнату
+            window.location.href = "/room/" + room_id;
+        });
+        socket.on('connect', function() {
+            console.log('WebSocket connected!');
+        });
+
+        socket.on('disconnect', function() {
+            console.log('WebSocket disconnected!');
+        });
+
+    </script>
+{% endblock %}

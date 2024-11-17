@@ -18,9 +18,7 @@
     <!-- Кнопка "Готов" для всех игроков -->
     <button id="readyButton" class="btn btn-success">Ready</button>
     <!-- Кнопка "Начать игру" для создателя -->
-    {% if user_id == creator_id %}
-        <button id="startGameButton" class="btn btn-primary" disabled>Start Game</button>
-    {% endif %}
+    <button id="startGameButton" class="btn btn-primary" disabled>Start Game</button>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
     <script>
@@ -92,14 +90,23 @@
             }
         });
     
-        // Обработка события начала игры
         document.getElementById('startGameButton').onclick = function() {
+            // Отправляем сигнал на сервер, что игра начинается
+            console.log('Start Game button clicked. Sending start_game event...');
             socket.emit('start_game', { room_id: room_id });
+        
+            // Отключаем кнопку после нажатия, чтобы избежать повторных отправок
+            this.disabled = true;
         };
     
         // Обработка начала игры
+        socket.on('connect', function() {
+            console.log('WebSocket connected!');
+        });
+        
         socket.on('game_started', function(data) {
-            alert(data.msg);  // Уведомление, что игра началась
+            console.log('Game started:', data.msg);  // Убедитесь, что это сообщение появляется в консоли
+            window.location.href = `/game/${room_id}`;  // Переход в игру
         });
     </script>
 {% endblock %}
