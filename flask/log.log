@@ -3,6 +3,17 @@ pip install cs50
 pip install Flask
 pip install Flask-Session
 pip install Werkzeug
+pip install pylint
+
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+vi ~/.pip/pip.conf
+[global]
+timeout = 60
+index-url = https://pypi.tuna.tsinghua.edu.cn/simple
+pip freeze
+pylint --generate-rcfile > .pylintrc
+vi .pylintrc
+max-line-length=160
 
 открыл порт 5000 на windows
 в powershell netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=5000 connectaddress=172.18.219.234 connectport=5000 прокинул порт

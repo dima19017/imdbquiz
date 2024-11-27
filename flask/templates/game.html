@@ -6,63 +6,73 @@
 {% endblock %}
 
 {% block main %}
-    <h2>Guess the Movie</h2>
-
-    <div id="movieHints">
-        <p><strong>Release Date:</strong> <span id="releaseDate"></span></p>
-        <p><strong>Vote Average:</strong> <span id="voteAverage"></span></p>
-        <p><strong>Overview:</strong> <span id="overview"></span></p>
+    <!-- Здесь будет отображаться номер комнаты -->
+    <div id="room-info">
+        <h3>Current Room</h3>
+        <p><strong>Room ID:</strong> <span id="room-id">Loading...</span></p>
     </div>
+        <h1>Welcome to the imdbquiz</h1>
+        <div id="timer">30</div>
+        <div id="movie-details">
+            <h2>Movie Hints</h2>
+            <!-- <p><strong>Title:</strong> <span id="movie-title">Loading title...</span></p> -->
+            <p><strong>Release Date:</strong> <span id="movie-release-date">Loading title...</span></p>
+            <p><strong>Vote Average:</strong> <span id="movie-vote-average">Loading title...</span></p>
+            <p><strong>Overview:</strong> <span id="movie-overview">Loading title...</span></p>
+        </div>
+
+        <div id="hints">
+            <h3>Hints</h3>
+            <p id="hint-message">Waiting for hints...</p>
+        </div>
+    <button id="shhints" class="btn btn-primary">Show hints</button>
 
     <input type="text" id="movieAnswer" placeholder="Enter your guess here" disabled>
     <button id="submitAnswer" class="btn btn-primary" disabled>Submit Answer</button>
-    
+
     <div id="timer">30</div>
 
     <ul id="playersList">
         <!-- Список игроков, отображаем их ответы -->
     </ul>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
     <script>
         var socket = io.connect('http://' + document.domain + ':' + location.port);
-        var room_id = "{{ room_id }}";
+        const room_id = "{{ room_id }}";
         var movie_id = "{{ movie_id }}";  // ID фильма, который был выбран для игры
+        document.getElementById('room-id').innerText = room_id;
+        // socket.emit('join', { room_id: room_id });
 
-        socket.on('show_hints', function(data) {
-            console.log('Received hints:', data); // Логируем данные для проверки
-            if (data) {
-                document.getElementById('releaseDate').textContent = data.release_date || 'N/A';
-                document.getElementById('voteAverage').textContent = data.vote_average || 'N/A';
-                document.getElementById('overview').textContent = data.overview || 'N/A';
-
-                // Разблокируем поле ввода и кнопку
-                document.getElementById('movieAnswer').disabled = false;
-                document.getElementById('submitAnswer').disabled = false;
-            } else {
-                console.error('Hints data is missing or invalid:', data);
-            }
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('shhints').addEventListener('click', function() {
+                console.log('room: ', { room_id });
+                socket.emit('show_hints_serv', { room_id: room_id });
+                // socket.emit('start_game', { room_id: room_id });
+                console.log('asked server for hints', { room_id });
+            });
         });
 
+        // Подписываемся на событие 'show_hints_on_client'
+        socket.on('show_hints_on_client', function(data) {
+            // Проверяем, что получили данные и отображаем их
+            console.log('Received hints:', data);  // Печатаем данные в консоль для отладки
+            if (data && data.movie) {
+                const movie = data.movie;
+                // document.getElementById('movie-title').textContent = movie.original_title;
+                document.getElementById('movie-release-date').textContent = movie.release_date;
+                document.getElementById('movie-vote-average').textContent = movie.vote_average;
+                document.getElementById('movie-overview').textContent = movie.overview;
 
-        // Таймер игры
-        var timeLeft = 30;
-        var timerInterval = setInterval(function() {
-            if (timeLeft > 0) {
-                document.getElementById('timer').innerText = timeLeft;
-                timeLeft--;
-            } else {
-                clearInterval(timerInterval);
-                alert("Time's up!");
-                // Отправляем на сервер сигнал о завершении времени
-                socket.emit('end_game', { room_id: room_id });
+                document.getElementById('movieAnswer').disabled = false;
+                document.getElementById('submitAnswer').disabled = false;
             }
-        }, 1000);
+        });
 
         // Отправка ответа игроком
         document.getElementById('submitAnswer').addEventListener('click', function() {
             var answer = document.getElementById('movieAnswer').value;
             socket.emit('submit_answer', { room_id: room_id, answer: answer });
+            console.log('submitAnswer', room_id, answer);
         });
 
         // Обработка ответов игроков
@@ -80,13 +90,29 @@
             // Возвращаем игроков в комнату
             window.location.href = "/room/" + room_id;
         });
+
         socket.on('connect', function() {
             console.log('WebSocket connected!');
         });
 
-        socket.on('disconnect', function() {
-            console.log('WebSocket disconnected!');
+                // Обработка обновления таймера
+        socket.on('update_timer', function(data) {
+            if (data.room_id === room_id) {
+                document.getElementById('timer').innerText = data.time_left;
+            }
         });
+
+        // Обработка окончания игры
+        socket.on('game_over', function(data) {
+            if (data.room_id === room_id) {
+                alert("Time's up! The game is over.");
+                window.location.href = "/room/" + room_id;  // Перенаправление на страницу комнаты
+            }
+        });
+
+//        socket.on('disconnect', function() {
+//            console.log('WebSocket disconnected!');
+//        });
 
     </script>
 {% endblock %}
