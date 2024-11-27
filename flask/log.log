@@ -3,6 +3,17 @@ pip install cs50
 pip install Flask
 pip install Flask-Session
 pip install Werkzeug
+pip install pylint
+
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+vi ~/.pip/pip.conf
+[global]
+timeout = 60
+index-url = https://pypi.tuna.tsinghua.edu.cn/simple
+pip freeze
+pylint --generate-rcfile > .pylintrc
+vi .pylintrc
+max-line-length=160
 
 открыл порт 5000 на windows
 в powershell netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=5000 connectaddress=172.18.219.234 connectport=5000 прокинул порт
@@ -23,3 +34,31 @@ curl.exe -x socks5h://166.1.128.144:64045 --proxy-user eWSWGwq8:dWAf82nT "https:
 curl.exe -x http://166.1.128.144:64044 --proxy-user eWSWGwq8:dWAf82nT "https://api.themoviedb.org/3/movie/popular?api_key=69c6b9362872f8b7d98effec5badddd6&language=en-US&page=1"
 
 curl.exe -x https://166.1.128.144:64044 --proxy-user eWSWGwq8:dWAf82nT "https://api.themoviedb.org/3/movie/popular?api_key=69c6b9362872f8b7d98effec5badddd6&language=en-US&page=1"
+
+
+
+#@app.route('/random_movie_curl', methods=['GET'])
+#def random_movie_curl():
+#    page = random.randint(1, 20)
+#
+#    curl_command = [
+#        "curl", 
+#        "-x", PROXY,  # Прокси-сервер
+#        f"{TMDB_API_URL}/movie/popular?api_key={TMDB_API_KEY}&language=en-US&page={page}"  # Параметры запроса
+#    ]
+#
+#    try:
+#        result = subprocess.run(curl_command, capture_output=True, text=True, check=True)
+#
+#        movies_data = json.loads(result.stdout)
+#        movies = movies_data.get('results', [])
+#
+#        if movies:
+#            random_movie = random.choice(movies)  # Случайный фильм из полученного списка
+#            return jsonify(random_movie)  # Отправляем случайный фильм в формате JSON
+#        else:
+#            return jsonify({'error': 'No movies found'}), 404
+#
+#    except subprocess.CalledProcessError as e:
+#        return jsonify({'error': f'Error executing curl: {e.stderr}'}), 500
+#

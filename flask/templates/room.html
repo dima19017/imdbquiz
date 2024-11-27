@@ -9,18 +9,16 @@
     <h2>Room {{ room_id }}</h2>
     <p>Players in the room:</p>
     <ul id="players">
-        {% for player in players %}
+        {% for player in rooms['players'] %}
             <li>{{ player }}</li>
         {% endfor %}
     </ul>
-    <p><strong>Creator:</strong> {{ creator_id }}</p>
+    <p><strong id="creator-label">Creator:</strong> {{ rooms['creator'] }}</p>
     <button id="leaveRoom" class="btn btn-danger" href="/">Leave Room</button>
     <!-- Кнопка "Готов" для всех игроков -->
     <button id="readyButton" class="btn btn-success">Ready</button>
     <!-- Кнопка "Начать игру" для создателя -->
-    {% if user_id == creator_id %}
-        <button id="startGameButton" class="btn btn-primary" disabled>Start Game</button>
-    {% endif %}
+    <button id="startGameButton" class="btn btn-primary" disabled>Start Game</button>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
     <script>
@@ -31,38 +29,44 @@
         // Отправка сообщений в комнату
         socket.emit('join', { room_id: room_id });
 
-        // Покидание комнаты
-        document.getElementById('leaveRoom').addEventListener('click', function() {
-            console.log("User is leaving the room");
-            socket.emit('leave', { room_id: room_id });
-            console.log("Navigating to homepage");
-            window.location.href = "/";
+socket.on('message', function(data) {
+    // Обновление списка игроков
+    if (data.players) {
+        const playersList = document.getElementById('players');
+        playersList.innerHTML = '';  // Очищаем список игроков
+        data.players.forEach(player => {
+            const li = document.createElement('li');
+            li.textContent = player;
+            playersList.appendChild(li);
         });
+    }
+});
+    socket.on('creator', function(data) {
+    if (data.creator) {
+        const creatorElement = document.getElementById('creator-label');
+        if (String(creatorElement.textContent).trim() !== `Creator: ${String(data.creator).trim()}`) {
+            creatorElement.textContent = `Creator: ${data.creator}`;  // Установить новый текст
+        }
+    }
+});
 
-        // Обработка сообщений в комнате
-        socket.on('message', function(data) {
+    // Покидание комнаты
+    document.getElementById('leaveRoom').addEventListener('click', function() {
+        console.log("User is leaving the room");
+        socket.emit('leave', { room_id: room_id });
+        console.log("Navigating to homepage");
+        window.location.href = "/";
+    });
 
-            // Обновляем список игроков, если сервер отправляет их
-            if (data.players) {
-                const playersList = document.getElementById('players');
-                playersList.innerHTML = '';
-                data.players.forEach(player => {
-                    const li = document.createElement('li');
-                    li.textContent = player;
-                    playersList.appendChild(li);
-                });
-            }
-        });
-
-        // Функция для отправки события готовности
-        document.getElementById('readyButton').onclick = function() {
-            socket.emit('ready', { room_id: room_id });
-        };
+    // Функция для отправки события готовности
+    document.getElementById('readyButton').addEventListener('click', function() {
+        socket.emit('ready', { room_id: room_id });
+    });
 
         // Обработка обновления списка готовых игроков
         socket.on('update_ready_players', function(data) {
             var readyPlayers = data.ready_players;
-        
+
             // Обновляем состояние игроков
             var playersList = document.getElementById('players');
             playersList.innerHTML = '';
@@ -71,13 +75,15 @@
                 li.textContent = player;
                 playersList.appendChild(li);
             });
-        
+
             // Проверяем, все ли игроки готовы
             var readyButton = document.getElementById('readyButton');
             if (readyPlayers.includes(user_id)) {
                 readyButton.disabled = true;  // Делаем кнопку "Готов" неактивной после нажатия
             }
-        
+            else {
+                readyButton.disabled = false; }
+
             // Если все игроки нажали "Готов", разрешаем старт игры для создателя
             if (readyPlayers.length === data.players.length) {
                 socket.emit('enable_start_game', { room_id: room_id });
@@ -87,19 +93,25 @@
         // Обработка активации кнопки "Начать игру" для создателя
         socket.on('enable_start_game', function(data) {
             var startGameButton = document.getElementById('startGameButton');
-            if (data.can_start) {
+            if (data.can_start === true) {
                 startGameButton.disabled = false;  // Разрешаем нажать кнопку "Начать игру"
+            }
+            else {
+                startGameButton.disabled = true;
             }
         });
     
-        // Обработка события начала игры
         document.getElementById('startGameButton').onclick = function() {
+            // Отправляем сигнал на сервер, что игра начинается
+            console.log('Start Game button clicked. Sending start_game event...');
             socket.emit('start_game', { room_id: room_id });
+            // Отключаем кнопку после нажатия, чтобы избежать повторных отправок
+            this.disabled = true;
         };
-    
-        // Обработка начала игры
+
         socket.on('game_started', function(data) {
-            alert(data.msg);  // Уведомление, что игра началась
+            console.log('Game started:', data.msg);  // Убедитесь, что это сообщение появляется в консоли
+            window.location.href = `/game/${room_id}`;  // Переход в игру
         });
     </script>
 {% endblock %}

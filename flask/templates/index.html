@@ -17,29 +17,63 @@
         <button id="joinRoom" class="btn btn-primary">Join Room</button>
     </div>
 
-    <div id="roomInfo"></div>
+    <!-- <div id="roomInfo"></div> -->
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
     <script>
+        // метод библиотеки socket.io для соединения с сервером
+        // станет сложнее если фронт и бек на разных портах, тогда нужен CORS
         var socket = io.connect('http://' + document.domain + ':' + location.port);
 
-        // Создание комнаты
-        document.getElementById('createRoom').onclick = function() {
+        // Создание комнаты. Назначаем обработчик события по клику
+        document.getElementById('createRoom').addEventListener('click', () => {
+            // fetch отправляем HTTP-запрос на сервер с POST
             fetch('/handle_create_room', { method: 'POST' })
-                .then(response => response.redirected && window.location.replace(response.url));
-        }
+                // сервер возвращает response от сервера
+                .then(response => {
+                    // который мы проверяем и если это перенаправление
+                    if (response.redirected) {
+                        // Перенаправляем пользователя, если сервер это требует
+                        window.location.replace(response.url);
+                        console.log('redirect to created room') 
+                    } else {
+                        // Логируем ошибку, если сервер не перенаправил
+                        console.error('Failed to create room. Server did not redirect.');
+                    }
+                })
+                .catch(error => {
+                    // Логируем ошибку, если fetch не удался
+                    console.error('Error during fetch:', error);
+                });
+        });
 
-        // Подключение к комнате
-        document.getElementById('joinRoom').onclick = function() {
-            var roomID = document.getElementById('roomID').value;
+        document.getElementById('joinRoom').addEventListener('click', function() {
+            const roomID = document.getElementById('roomID').value;
+            console.log('Attempting to join room with ID:', roomID);
             if (roomID) {
+                console.log('Sending request to /handle_join_room with room_id:', roomID);
                 fetch('/handle_join_room', {
                     method: 'POST',
                     body: new URLSearchParams({ room_id: roomID })
                 })
-                .then(response => response.redirected && window.location.replace(response.url));
+                .then(response => {
+                    if (response.ok) {
+                        console.log('Successfully joined the room:', roomID);
+                        if (response.redirected) {
+                            console.log('Redirecting to:', response.url);
+                            window.location.replace(response.url);
+                        }
+                    } else {
+                        console.error('Failed to join room. Server responded with status:', response.status);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error during fetch request:', error);
+                });
+            } else {
+                console.warn('No room ID provided. Cannot join room.');
             }
-        }
+        });
     </script>
 {% endblock %}
 
