@@ -113,5 +113,23 @@ socket.on('message', function(data) {
             console.log('Game started:', data.msg);  // Убедитесь, что это сообщение появляется в консоли
             window.location.href = `/game/${room_id}`;  // Переход в игру
         });
+
+        document.addEventListener('DOMContentLoaded', function () {
+    const readyButton = document.getElementById('readyButton');
+
+    // Проверка нажатия на кнопку
+    readyButton.addEventListener('click', function () {
+        // Если кнопка уже нажата, удаляем активный класс, иначе добавляем
+        this.classList.toggle('active');
+        
+        // Можно добавить дополнительную логику, например, отключение других кнопок
+        // if (this.classList.contains('active')) {
+        //     // Кнопка готова, делаем что-то
+        // } else {
+        //     // Кнопка не готова
+        // }
+    });
+});
+
     </script>
 {% endblock %}

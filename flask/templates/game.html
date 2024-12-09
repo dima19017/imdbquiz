@@ -36,6 +36,24 @@
     <input type="text" id="movieAnswer" placeholder="Enter your guess here" disabled>
     <button id="submitAnswer" class="btn btn-primary" disabled>Submit Answer</button>
 
+    <h1>Game Leaderboard</h1>
+
+    <table id="leaderboard" border="1">
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>User ID</th>
+                <th>Correct Answers</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Здесь будут отображаться результаты -->
+        </tbody>
+    </table>
+
+    <!-- Кнопка будет скрыта по умолчанию -->
+    <button id="nextRoomButton" style="display: none;">Go to Next Room</button>
+
     <ul id="playersList">
         <!-- Список игроков, отображаем их ответы -->
     </ul>
@@ -155,12 +173,43 @@
             playersList.appendChild(li);
         });
 
-        // Результаты игры по завершению
         socket.on('game_results', function(data) {
-            alert("Game Over! Correct players: " + data.correct_players.join(", "));
-            alert("Incorrect players: " + data.incorrect_players.join(", "));
-            // Возвращаем игроков в комнату
-            window.location.href = "/room/" + room_id;
+            // Получаем список лидеров
+            const leaderboard = data.leaderboard;
+
+            // Получаем таблицу и ее тело
+            const tableBody = document.querySelector('#leaderboard tbody');
+
+            // Очищаем текущие строки таблицы
+            tableBody.innerHTML = '';
+
+            // Заполняем таблицу новыми результатами
+            leaderboard.forEach(player => {
+                const row = document.createElement('tr');
+                
+                // Создаем ячейки для места, user_id и правильных ответов
+                const rankCell = document.createElement('td');
+                rankCell.textContent = player.rank;
+                row.appendChild(rankCell);
+
+                const userIdCell = document.createElement('td');
+                userIdCell.textContent = player.user_id;
+                row.appendChild(userIdCell);
+
+                const correctAnswersCell = document.createElement('td');
+                correctAnswersCell.textContent = player.correct_answers;
+                row.appendChild(correctAnswersCell);
+
+                // Добавляем строку в таблицу
+                tableBody.appendChild(row);
+            });
+
+            // Показываем кнопку для перехода в комнату
+            const nextRoomButton = document.getElementById('nextRoomButton');
+            nextRoomButton.style.display = 'inline-block';  // Отображаем кнопку
+            nextRoomButton.addEventListener('click', function() {
+                window.location.href = "/room/" + room_id;  // Переход в следующую комнату
+            });
         });
 
 //        // Обработка окончания игры
