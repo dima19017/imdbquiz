@@ -6,3 +6,4 @@ requests
 Werkzeug
 Flask-socketio
 pylint
+colorlog

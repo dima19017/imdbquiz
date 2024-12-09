@@ -89,7 +89,7 @@ socket.on('message', function(data) {
                 socket.emit('enable_start_game', { room_id: room_id });
             }
         });
-    
+
         // Обработка активации кнопки "Начать игру" для создателя
         socket.on('enable_start_game', function(data) {
             var startGameButton = document.getElementById('startGameButton');
@@ -100,7 +100,7 @@ socket.on('message', function(data) {
                 startGameButton.disabled = true;
             }
         });
-    
+
         document.getElementById('startGameButton').onclick = function() {
             // Отправляем сигнал на сервер, что игра начинается
             console.log('Start Game button clicked. Sending start_game event...');
