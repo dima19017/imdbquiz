@@ -443,8 +443,7 @@ def on_submit_answer(data):
     
     # Проверяем, все ли игроки завершили ответы (сравниваем с MOVIE_COUNTER)
     all_answers_submitted = True
-    correct_players = []
-    incorrect_players = []
+    players_scores = []
 
     logging.info(f"Checking if all answers have been submitted for room_id {room_id}")
 
@@ -454,28 +453,37 @@ def on_submit_answer(data):
         # Проверяем, что у игрока есть ответы на все фильмы (сравниваем количество ответов с MOVIE_COUNTER)
         if len(answers) == MOVIE_COUNTER:  # У игрока должно быть ответов, равных количеству фильмов
             logging.info(f"Player {player_id} has answered all questions.")
-            # Проверяем правильность ответов для игрока
-            if all(answers[ans_counter] for ans_counter in answers):
-                correct_players.append(player_id)
-                logging.info(f"Player {player_id} is correct. Added to correct_players.")
-            else:
-                incorrect_players.append(player_id)
-                logging.info(f"Player {player_id} is incorrect. Added to incorrect_players.")
+            
+            # Подсчитываем количество правильных ответов для этого игрока
+            correct_answers_count = sum(answers.values())  # Количество правильных ответов
+            players_scores.append((player_id, correct_answers_count))  # Добавляем в список (ID игрока, количество правильных ответов)
+            logging.info(f"Player {player_id} has {correct_answers_count} correct answers.")
         else:
             all_answers_submitted = False
             logging.info(f"Player {player_id} has not answered all questions. Expected {MOVIE_COUNTER} answers but got {len(answers)}.")
             break
 
     if all_answers_submitted:
+        # Сортируем игроков по количеству правильных ответов (от большего к меньшему)
+        sorted_players = sorted(players_scores, key=lambda x: x[1], reverse=True)
+        
         # Логируем перед отправкой результата
         logging.info(f"All players have submitted their answers. Sending game results.")
+        
+        # Подготовка списка победителей в формате для отображения на клиенте
+        leaderboard = [{
+            'user_id': player[0],
+            'correct_answers': player[1],
+            'rank': index + 1  # Индекс + 1 - это место игрока
+        } for index, player in enumerate(sorted_players)]
+        
         emit('game_results', {
-            'correct_players': correct_players,
-            'incorrect_players': incorrect_players
+            'leaderboard': leaderboard
         })
-        logging.info(f"Sent 'game_results' event. Correct players: {correct_players}, Incorrect players: {incorrect_players}")
+        logging.info(f"Sent 'game_results' event. Leaderboard: {leaderboard}")
     else:
         logging.info(f"Not all players have submitted their answers yet.")
+
 
 
 @socketio.on('end_game')

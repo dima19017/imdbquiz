@@ -1,0 +1,164 @@
+/* Size for brand */
+nav .navbar-brand
+{
+    font-size: xx-large;
+}
+
+/* Colors for brand */
+nav .navbar-brand .blue
+{
+    color: #537fbe;
+}
+nav .navbar-brand .red
+{
+    color: #ea433b;
+}
+nav .navbar-brand .yellow
+{
+    color: #f5b82e;
+}
+nav .navbar-brand .green
+{
+    color: #2e944b;
+}
+
+.btn-startgame {
+    background-color: #28a745;  /* Зеленый цвет */
+    color: white;               /* Белый текст */
+    border: none;               /* Убираем границу */
+    padding: 10px 20px;         /* Отступы внутри кнопки */
+    font-size: 16px;            /* Размер шрифта */
+    font-weight: bold;          /* Жирный текст */
+    border-radius: 5px;         /* Скругленные углы */
+    cursor: pointer;           /* Курсор в виде указателя */
+    transition: background-color 0.3s ease, transform 0.3s ease; /* Плавные переходы */
+}
+
+/* Эффект при наведении на кнопку */
+.btn-startgame:hover {
+    background-color: #218838;  /* Темно-зеленый при наведении */
+    transform: scale(1.05);      /* Легкое увеличение кнопки */
+}
+
+/* Эффект при нажатии на кнопку */
+.btn-startgame:active {
+    background-color: #1e7e34;  /* Еще более темный зеленый при нажатии */
+    transform: scale(1);         /* Возвращаем обычный размер */
+}
+
+/* Эффект фокуса */
+.btn-startgame:focus {
+    outline: none;               /* Убираем контур */
+}
+
+/* Стиль для активной кнопки */
+.btn-success.active {
+    background-color: #28a745; /* Зелёный цвет для активной кнопки */
+    border-color: #28a745;
+    cursor: pointer;
+}
+
+/* Стиль для неактивной кнопки */
+.btn-success.disabled, .btn-success:disabled {
+    background-color: #6c757d; /* Серый цвет для неактивной кнопки */
+    border-color: #6c757d;
+    cursor: not-allowed; /* Курсор "недоступно" */
+}
+
+
+/* Общие стили для списка игроков */
+#playersList {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+    background: linear-gradient(45deg, #ff6ec7, #ff9a8b); /* Градиентный фон */
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    padding: 20px;
+    margin-top: 50px;
+    position: relative;
+    animation: fadeIn 1s ease-out;
+}
+
+/* Элементы списка (каждый игрок) */
+#playersList li {
+    font-size: 24px;
+    font-weight: bold;
+    color: #fff;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    animation: slideUp 0.5s ease-out forwards;
+}
+
+/* Эффекты при наведении на каждого игрока */
+#playersList li:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+}
+
+/* Анимация при добавлении каждого элемента */
+@keyframes slideUp {
+    0% {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Анимация для всего списка (fade in) */
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Победители — делаем их особенными */
+#playersList li.correct {
+    background: #4CAF50; /* Зеленый фон для победителей */
+    color: white;
+    font-size: 28px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    border: 2px solid #388E3C;
+}
+
+/* Стили для заголовка (если нужен заголовок для списка) */
+#playersListTitle {
+    font-size: 36px;
+    color: #ff6ec7;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4);
+    animation: fadeIn 1s ease-out;
+}
+
+/* Добавление фона с пузырьками для эффектности */
+#playersList::after {
+    content: "";
+    position: absolute;
+    background: url('https://www.transparenttextures.com/patterns/circles.png');
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.1;
+    pointer-events: none;
+}
