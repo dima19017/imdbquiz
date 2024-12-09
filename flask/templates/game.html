@@ -10,27 +10,31 @@
     <div id="room-info">
         <h3>Current Room</h3>
         <p><strong>Room ID:</strong> <span id="room-id">Loading...</span></p>
+        <p id="movie-counter-display">Фильм № 1</p>
     </div>
-        <h1>Welcome to the imdbquiz</h1>
-        <div id="timer">30</div>
-        <div id="movie-details">
-            <h2>Movie Hints</h2>
-            <!-- <p><strong>Title:</strong> <span id="movie-title">Loading title...</span></p> -->
-            <p><strong>Release Date:</strong> <span id="movie-release-date">Loading title...</span></p>
-            <p><strong>Vote Average:</strong> <span id="movie-vote-average">Loading title...</span></p>
-            <p><strong>Overview:</strong> <span id="movie-overview">Loading title...</span></p>
+        <div id="movie-hints_1">
+            <!-- <p><strong>Title:</strong> <span id="movie-title">Loading...</span></p> -->
+            <p><strong>Release_date:</strong> <span id="movie-release-date">Loading...</span></p>
+            <p><strong>Characters:</strong> <span id="movie-characters">Loading...</span></p>
+        </div>
+        <div id="movie-hints_2">
+            <!-- <p><strong>Title:</strong> <span id="movie-title">Loading...</span></p> -->
+            <p><strong>Actors:</strong> <span id="movie-actors">Loading...</span></p>
+            <p><strong>Vote Average:</strong> <span id="movie-vote-average">Loading...</span></p>
+        </div>
+        <div id="movie-hints_3">
+            <!-- <p><strong>Title:</strong> <span id="movie-title">Loading...</span></p> -->
+            <p><strong>Overview:</strong> <span id="movie-overview">Loading...</span></p>
+            <p><strong>Original_language:</strong> <span id="movie-original-language">Loading...</span></p>
         </div>
 
-        <div id="hints">
-            <h3>Hints</h3>
-            <p id="hint-message">Waiting for hints...</p>
-        </div>
-    <button id="shhints" class="btn btn-primary">Show hints</button>
+    <button id="shhints" class="btn btn-primary">Start Game</button>
+    <button id="show_hints_1" class="btn btn-primary">Show hints 1</button>
+    <button id="show_hints_2" class="btn btn-primary">Show hints 2</button>
+    <button id="show_hints_3" class="btn btn-primary">Show hints 3</button>
 
     <input type="text" id="movieAnswer" placeholder="Enter your guess here" disabled>
     <button id="submitAnswer" class="btn btn-primary" disabled>Submit Answer</button>
-
-    <div id="timer">30</div>
 
     <ul id="playersList">
         <!-- Список игроков, отображаем их ответы -->
@@ -44,35 +48,103 @@
         // socket.emit('join', { room_id: room_id });
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Изначально счетчик равен 1, его можно менять по логике игры
+            let counter = 1;
             document.getElementById('shhints').addEventListener('click', function() {
-                console.log('room: ', { room_id });
-                socket.emit('show_hints_serv', { room_id: room_id });
-                // socket.emit('start_game', { room_id: room_id });
-                console.log('asked server for hints', { room_id });
+                document.getElementById('movie-counter-display').textContent = 'Фильм № ' + counter;
+                document.getElementById('movie-release-date').textContent = 'Loading...';
+                document.getElementById('movie-characters').textContent = 'Loading...';
+                document.getElementById('movie-actors').textContent = 'Loading...';
+                document.getElementById('movie-vote-average').textContent = 'Loading...';
+                document.getElementById('movie-overview').textContent = 'Loading...';
+                document.getElementById('movie-original-language').textContent = 'Loading...';
+                console.log('room: ', room_id, 'movie_counter: ', counter);
+                // Отправляем на сервер room_id и текущий счетчик фильма
+                socket.emit('show_hints_serv', { room_id: room_id, movie_counter: counter });
+                console.log('asked server for hints for movie: ', counter);
+                counter++;
             });
         });
 
-        // Подписываемся на событие 'show_hints_on_client'
+
         socket.on('show_hints_on_client', function(data) {
-            // Проверяем, что получили данные и отображаем их
-            console.log('Received hints:', data);  // Печатаем данные в консоль для отладки
+            // Логируем полученные данные для отладки
+            console.log('Received hints:', data);  // Печатаем все данные, полученные с сервера
+
             if (data && data.movie) {
                 const movie = data.movie;
-                // document.getElementById('movie-title').textContent = movie.original_title;
-                document.getElementById('movie-release-date').textContent = movie.release_date;
-                document.getElementById('movie-vote-average').textContent = movie.vote_average;
-                document.getElementById('movie-overview').textContent = movie.overview;
+            
+                // Логируем информацию о фильме для отладки
+                console.log('Movie Data:', movie); // Логируем данные о фильме
+            
+                // Добавляем обработчик для первой кнопки
+                document.getElementById('show_hints_1').addEventListener('click', function() {
+                    console.log('Show hints 1 clicked');  // Логируем, что была нажата первая кнопка
+                
+                    // Показываем первый блок с подсказками
+                    document.getElementById('movie-hints_1').style.display = 'block';
+                    document.getElementById('movie-release-date').textContent = movie.release_date;
+                    console.log('Release Date:', movie.release_date);  // Логируем дату релиза
+                
+                    // Логируем персонажей фильма (если они есть)
+                    const characters = movie.actors.map(actor => actor.character).join(", ") || "Not available";
+                    document.getElementById('movie-characters').textContent = characters;
+                    console.log('Characters:', characters);
+                });
+            
+                // Добавляем обработчик для второй кнопки
+                document.getElementById('show_hints_2').addEventListener('click', function() {
+                    console.log('Show hints 2 clicked');  // Логируем, что была нажата вторая кнопка
+                
+                    // Показываем второй блок с подсказками
+                    document.getElementById('movie-hints_2').style.display = 'block';
+                
+                    // Заполняем информацию о актерах и их ролях
+                    const actors = movie.actors.map(actor => actor.name).join(", ");
+                    document.getElementById('movie-actors').textContent = actors || "Not available";
+                    console.log('Actors:', actors);
 
-                document.getElementById('movieAnswer').disabled = false;
-                document.getElementById('submitAnswer').disabled = false;
-            }
+                    // Логируем и отображаем рейтинг фильма
+                    document.getElementById('movie-vote-average').textContent = movie.vote_average;
+                    console.log('Vote Average:', movie.vote_average);  // Логируем рейтинг фильма
+                });
+
+        // Добавляем обработчик для третьей кнопки
+        document.getElementById('show_hints_3').addEventListener('click', function() {
+            console.log('Show hints 3 clicked');  // Логируем, что была нажата третья кнопка
+
+            // Показываем третий блок с подсказками
+            document.getElementById('movie-hints_3').style.display = 'block';
+            document.getElementById('movie-overview').textContent = movie.overview;
+            console.log('Overview:', movie.overview);  // Логируем описание фильма
+
+            document.getElementById('movie-original-language').textContent = movie.original_language;
+            console.log('Original Language:', movie.original_language);  // Логируем оригинальный язык
+
+            // Логируем и отображаем ссылку на постер
+            const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
+            console.log('Poster URL:', posterUrl);
+            document.getElementById('movie-poster').src = posterUrl;  // Устанавливаем изображение постера
         });
 
+        // Включаем поля для ввода ответа после получения подсказок
+        document.getElementById('movieAnswer').disabled = false;
+        document.getElementById('submitAnswer').disabled = false;
+        console.log('Answer fields enabled');  // Логируем, что поля для ответа теперь доступны
+    }
+});
+
+
         // Отправка ответа игроком
+        let counter = 1;
+
         document.getElementById('submitAnswer').addEventListener('click', function() {
             var answer = document.getElementById('movieAnswer').value;
-            socket.emit('submit_answer', { room_id: room_id, answer: answer });
+            socket.emit('submit_answer', { room_id: room_id, answer: answer , answer_counter: counter });
             console.log('submitAnswer', room_id, answer);
+            document.getElementById('movieAnswer').value = '';
+            document.getElementById('submitAnswer').disabled = false; // если кнопка была отключена, включаем её
+            counter++;
         });
 
         // Обработка ответов игроков
@@ -91,27 +163,12 @@
             window.location.href = "/room/" + room_id;
         });
 
-        socket.on('connect', function() {
-            console.log('WebSocket connected!');
-        });
-
-                // Обработка обновления таймера
-        socket.on('update_timer', function(data) {
-            if (data.room_id === room_id) {
-                document.getElementById('timer').innerText = data.time_left;
-            }
-        });
-
-        // Обработка окончания игры
-        socket.on('game_over', function(data) {
-            if (data.room_id === room_id) {
-                alert("Time's up! The game is over.");
-                window.location.href = "/room/" + room_id;  // Перенаправление на страницу комнаты
-            }
-        });
-
-//        socket.on('disconnect', function() {
-//            console.log('WebSocket disconnected!');
+//        // Обработка окончания игры
+//        socket.on('game_end', function(data) {
+//            if (data.room_id === room_id) {
+//                alert("Time's up! The game is over.");
+//                window.location.href = "/room/" + room_id;  // Перенаправление на страницу комнаты
+//            }
 //        });
 
     </script>
