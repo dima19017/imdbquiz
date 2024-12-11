@@ -9,7 +9,7 @@ import requests
 import logging
 import colorlog
 import time
-from threading import Thread, Lock
+import threading
 from functools import wraps
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session, url_for, jsonify
@@ -36,9 +36,134 @@ TMDB_API_KEY = '69c6b9362872f8b7d98effec5badddd6'
 TMDB_API_URL = 'https://api.themoviedb.org/3'
 PROXY = "http://eWSWGwq8:dWAf82nT@166.1.128.144:64044"
 
-# Глобальный словарь для хранения данных об играх по ID комнат
+sorted_players = {}
+leaderboard = {}
+
+# =============================================================================
+# Таймер
+# =============================================================================
+# Храним данные игры для каждого room_id
 game_data = {}
 
+# Флаг для остановки таймера
+timer_running = True
+
+# Функция для запуска таймера с несколькими раундами и шагами
+def start_timer(room_id, total_rounds=2, steps_per_round=2, step_duration=20):
+    """
+    Запускает таймер с несколькими раундами и шагами в каждом раунде.
+    Каждый шаг длится step_duration секунд (по умолчанию 30 секунд).
+    По умолчанию 3 шага в каждом раунде.
+    """
+    global timer_running
+
+    game_data[room_id] = {
+        'round': 1,  # Текущий раунд
+        'step': 1,   # Текущий шаг
+        'round_start_time': time.time(),  # Время начала игры
+        'total_rounds': total_rounds,  # Общее количество раундов
+        'steps_per_round': steps_per_round,  # Количество шагов в раунде
+        'step_duration': step_duration  # Продолжительность каждого шага
+    }
+
+    # Функция для обновления времени
+    def update_timer():
+        global timer_running
+        room_info = game_data[room_id]
+
+        while room_info['round'] <= room_info['total_rounds'] and timer_running:
+            elapsed_time = time.time() - room_info['round_start_time']
+            remaining_time = room_info['step_duration'] - int(elapsed_time)
+
+            # Отправляем оставшееся время, номер раунда и шаг в комнату
+            socketio.emit('timer_update', {
+                'remaining_time': remaining_time,
+                'round': room_info['round'],
+                'step': room_info['step'],
+                'total_rounds': room_info['total_rounds'],
+                'steps_per_round': room_info['steps_per_round']
+            }, room=room_id)
+
+            if remaining_time <= 0:
+                # Переходим к следующему шагу
+                room_info['step'] += 1
+                room_info['round_start_time'] = time.time()  # Сброс времени начала шага
+
+                # Если шаг завершен, передаем информацию о завершении шага
+                socketio.emit('step_finished', {'round': room_info['round'], 'step': room_info['step'] - 1}, room=room_id)
+
+                # Если все шаги в раунде завершены, переходим к следующему раунду
+                if room_info['step'] > room_info['steps_per_round']:
+                    room_info['round'] += 1
+                    room_info['step'] = 1  # Сброс шагов для нового раунда
+                    room_info['round_start_time'] = time.time()  # Сброс времени начала нового раунда
+
+                    # Информируем о завершении раунда
+                    socketio.emit('round_finished', {'round': room_info['round'] - 1}, room=room_id)
+
+                # Если все раунды закончены
+                if room_info['round'] > room_info['total_rounds']:
+                    socketio.emit('game_results', {'message': 'All rounds are over!'}, room=room_id)
+                    timer_running = False
+                    print(f"Таймер для комнаты {room_id} остановлен после завершения всех раундов.")
+
+            time.sleep(1)  # Пауза в 1 секунду
+
+    # Запускаем таймер в отдельном потоке, чтобы не блокировать сервер
+    threading.Thread(target=update_timer, daemon=True).start()
+
+# Обработчик запроса оставшегося времени
+@socketio.on('get_remaining_time')
+def on_get_remaining_time(data):
+    room_id = data.get('room_id')
+
+    if room_id in game_data:
+        room_info = game_data[room_id]
+        if room_info['round'] <= room_info['total_rounds']:
+            room_info = game_data[room_id]
+            # Рассчитываем прошедшее время и оставшееся время
+            elapsed_time = time.time() - room_info['round_start_time']
+            remaining_time = room_info['step_duration'] - int(elapsed_time)
+            # Отправляем оставшееся время, номер раунда и шаг
+            emit('timer_update', {
+                'remaining_time': remaining_time,
+                'round': room_info['round'],
+                'step': room_info['step'],
+                'total_rounds': room_info['total_rounds'],
+                'steps_per_round': room_info['steps_per_round']
+            })
+        else:
+            players_scores = []
+            for player_id, answers in rooms[room_id]['players_answers'].items():
+                logging.info(f"Checking answers for player_id {player_id}: {answers}")
+
+                correct_answers_count = sum(answers.values())  # Количество правильных ответов
+                players_scores.append((player_id, correct_answers_count))  # Добавляем в список (ID игрока, количество правильных ответов)
+                logging.info(f"Player {player_id} has {correct_answers_count} correct answers.")
+
+            sorted_players = sorted(players_scores, key=lambda x: x[1], reverse=True)
+
+            # Логируем перед отправкой результата
+            logging.info(f"All players have submitted their answers. Sending game results.")
+
+            # Подготовка списка победителей в формате для отображения на клиенте
+            leaderboard = [{
+                'user_id': player[0],
+                'correct_answers': player[1],
+                'rank': index + 1  # Индекс + 1 - это место игрока
+            } for index, player in enumerate(sorted_players)]
+
+            emit('game_results', {
+                'leaderboard': leaderboard
+            })
+            logging.info(f"Sent 'game_results' event. Leaderboard: {leaderboard}")
+    else:
+        logging.error(f"Room {room_id} not found in game data.")
+
+@app.route('/api/timer', methods=['GET'])
+def get_timer():
+    ''' api для проверки состояния комнаты '''
+    return jsonify(game_data)
 # =============================================================================
 # Вспомогательные функции
 # =============================================================================
@@ -296,6 +421,7 @@ def on_start_game(data):
             # Получаем случайный фильм
             # Отправляем подсказки всем игрокам через WebSocket
             emit('game_started', {'msg': 'The game has started!'}, room=room_id)
+            start_timer(room_id)
         else:
             print(f"User {user_id} tried to start the game without being the creator.")
 
@@ -384,32 +510,6 @@ def game(room_id):
     # Передаем фильмы в шаблон
     return render_template('game.html', room_id=room_id, movies=rooms[room_id]['movies'])
 
-
-@socketio.on('show_hints_serv')
-def show_hints_serv(data):  # Убедитесь, что room_id - строка
-    ''' работа с подсказками через сокет '''
-    movie_counter = data.get('movie_counter')
-    room_id = data.get('room_id')
-    logging.info(f"Received room_id: {room_id}, movie_counter: {movie_counter}")
-    if room_id in rooms:
-        if 'movies' in rooms[room_id]:
-            movies = rooms[room_id]['movies']
-            if movie_counter in movies:
-                        emit('show_hints_on_client', {
-                            'msg': 'Hints have joined the room.',
-                            'movie': movies[movie_counter]
-                        })
-            else:
-                emit('show_hints_on_client', {
-                    'msg': f"Movie {movie_counter} not found in the room."
-                })
-            # emit('show_hints_on_client', {
-            #     'msg': 'hints has joined the room.',
-            #     'movie': rooms[room_id]['movies']['{movie_counter'}], })
-            logging.info(f"Send {movies[movie_counter]} to room {room_id}.")
-        else: logging.error(f"Movie not found in room {room_id}.")
-    else: logging.error(f"Room {room_id} not found.")
-
 @socketio.on('submit_answer')
 def on_submit_answer(data):
     ''' Сокет отправки ответа '''
@@ -484,8 +584,6 @@ def on_submit_answer(data):
     else:
         logging.info(f"Not all players have submitted their answers yet.")
 
-
-
 @socketio.on('end_game')
 def on_end_game(data):
     ''' Сокет конца игры '''
@@ -499,11 +597,6 @@ def on_end_game(data):
     # Возвращаем игроков в комнату
     time.sleep(1)
     emit('game_end', {'message': "Returning to room"})
-
-@socketio.on('connect')
-def handle_connect():
-    ''' Простая проверка подключения '''
-    logging.info("\nWEBSOCKET: Клиент подключен через websocket connect")
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
