@@ -26,6 +26,7 @@
             <!-- <p><strong>Title:</strong> <span id="movie-title">Loading...</span></p> -->
             <p><strong>Actors:</strong> <span id="movie-actors">Loading...</span></p>
             <p><strong>Vote Average:</strong> <span id="movie-vote-average">Loading...</span></p>
+            <!-- <p><strong>Poster:</strong> <span id="movie-poster" class="movie-poster">Loading...</span></p> -->
         </div>
         <div id="movie-hints_3">
             <!-- <p><strong>Title:</strong> <span id="movie-title">Loading...</span></p> -->
@@ -43,7 +44,7 @@
             <tr>
                 <th>Rank</th>
                 <th>User ID</th>
-                <th>Correct Answers</th>
+                <th>Points</th>
             </tr>
         </thead>
         <tbody>
@@ -104,7 +105,35 @@
             document.getElementById('submitAnswer').disabled = false;  // Разблокируем кнопку
             canSubmitAnswer = true;  // Разрешаем отправку ответа в следующем раунде
         }
-    });
+    // Получаем подсказки для текущего фильма
+    const hints = data.hints;
+
+    // Обновляем блок подсказок для текущего фильма
+    document.getElementById('movie-release-date').innerText = hints.release_date || 'Loading...';
+    document.getElementById('movie-characters').innerText = hints.characters ? hints.characters.join(', ') : 'Loading...';
+    document.getElementById('movie-actors').innerText = hints.actors_names ? hints.actors_names.join(', ') : 'Loading...';
+    document.getElementById('movie-vote-average').innerText = hints.vote_average || 'Loading...';
+    document.getElementById('movie-overview').innerText = hints.overview || 'Loading...';
+    document.getElementById('movie-original-language').innerText = hints.original_language || 'Loading...';
+//     // document.getElementById('movie-poster').innerText = hints.poster_path || 'Loading...';
+//     const moviePosterContainer = document.getElementById('movie-poster');
+// 
+//         // Проверяем, если URL постера существует
+//         if (data.poster_path) {
+//         // Создаем новый элемент <img>
+//         const img = document.createElement('img');
+//         img.src = data.poster_path;  // Устанавливаем путь к картинке
+//         title = poster;
+//         img.alt = data.title;  // Альтернативный текст (название фильма)
+// 
+//         // Вставляем картинку в контейнер
+//         moviePosterContainer.appendChild(img);
+//     } else {
+//         // Если нет изображения, выводим сообщение
+//         moviePosterContainer.innerText = 'No poster available';
+//     }
+// 
+// });
 
     document.getElementById('submitAnswer').addEventListener('click', function() {
         console.log("Кнопка отправки ответа нажата.");
@@ -117,7 +146,7 @@
         var answer = document.getElementById('movieAnswer').value;
     
         // Отправляем ответ на сервер
-        socket.emit('submit_answer', { room_id: room_id, answer: answer, answer_counter: currentRound });
+        socket.emit('submit_answer', { room_id: room_id, answer: answer, answer_step: currentStep, answer_counter: currentRound });
         console.log("Ответ отправлен на сервер для комнаты ", room_id, " с раундом ", currentRound);
     
         // Очищаем поле ввода

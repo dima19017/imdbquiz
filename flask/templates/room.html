@@ -16,7 +16,7 @@
     <p><strong id="creator-label">Creator:</strong> {{ rooms['creator'] }}</p>
     <button id="leaveRoom" class="btn btn-danger" href="/">Leave Room</button>
     <!-- Кнопка "Готов" для всех игроков -->
-    <button id="readyButton" class="btn btn-success">Ready</button>
+    <button id="readyButton" class="btn">Ready</button>
     <!-- Кнопка "Начать игру" для создателя -->
     <button id="startGameButton" class="btn btn-primary" disabled>Start Game</button>
 
@@ -61,45 +61,54 @@ socket.on('message', function(data) {
     // Функция для отправки события готовности
     document.getElementById('readyButton').addEventListener('click', function() {
         socket.emit('ready', { room_id: room_id });
+        readyButton.classList.toggle('active');
+        // Проверяем, если класс 'active' присутствует, меняем текст кнопки
+        if (this.classList.contains('active')) {
+            this.textContent = 'Not ready';  // Текст при активном состоянии
+        } else {
+            this.textContent = 'Ready';  // Текст, когда кнопка не активна
+        }
     });
 
-        // Обработка обновления списка готовых игроков
-        socket.on('update_ready_players', function(data) {
-            var readyPlayers = data.ready_players;
+// Обработка обновления списка готовых игроков
+socket.on('update_ready_players', function(data) {
+    var readyPlayers = data.ready_players;
+    var readyButton = document.getElementById('readyButton');
+    
+    // // Проверяем, все ли игроки готовы
+    // if (readyPlayers.includes(user_id)) {
+    //     readyButton.classList.add('active');  // Кнопка уже нажата, показываем это визуально
+    //     readyButton.classList.remove('btn');
+    // } else {
+    //     readyButton.classList.remove('active');  // Убираем класс "active", если игрок не готов
+    //     readyButton.classList.add('btn');
+    // }
 
-            // Обновляем состояние игроков
-            var playersList = document.getElementById('players');
-            playersList.innerHTML = '';
-            data.players.forEach(function(player) {
-                var li = document.createElement('li');
-                li.textContent = player;
-                playersList.appendChild(li);
-            });
+    // Обновляем список игроков
+    var playersList = document.getElementById('players');
+    playersList.innerHTML = '';
+    data.players.forEach(function(player) {
+        var li = document.createElement('li');
+        li.textContent = player;
+        playersList.appendChild(li);
+    });
 
-            // Проверяем, все ли игроки готовы
-            var readyButton = document.getElementById('readyButton');
-            if (readyPlayers.includes(user_id)) {
-                readyButton.disabled = true;  // Делаем кнопку "Готов" неактивной после нажатия
-            }
-            else {
-                readyButton.disabled = false; }
+    // Если все игроки нажали "Готов", разрешаем старт игры для создателя
+    if (readyPlayers.length === data.players.length) {
+        socket.emit('enable_start_game', { room_id: room_id });
+    }
+});
 
-            // Если все игроки нажали "Готов", разрешаем старт игры для создателя
-            if (readyPlayers.length === data.players.length) {
-                socket.emit('enable_start_game', { room_id: room_id });
-            }
-        });
+// Обработка активации кнопки "Начать игру" для создателя
+socket.on('enable_start_game', function(data) {
+    var startGameButton = document.getElementById('startGameButton');
+    if (data.can_start === true) {
+        startGameButton.disabled = false;  // Разрешаем нажать кнопку "Начать игру"
+    } else {
+        startGameButton.disabled = true;
+    }
+});
 
-        // Обработка активации кнопки "Начать игру" для создателя
-        socket.on('enable_start_game', function(data) {
-            var startGameButton = document.getElementById('startGameButton');
-            if (data.can_start === true) {
-                startGameButton.disabled = false;  // Разрешаем нажать кнопку "Начать игру"
-            }
-            else {
-                startGameButton.disabled = true;
-            }
-        });
 
         document.getElementById('startGameButton').onclick = function() {
             // Отправляем сигнал на сервер, что игра начинается
@@ -113,23 +122,5 @@ socket.on('message', function(data) {
             console.log('Game started:', data.msg);  // Убедитесь, что это сообщение появляется в консоли
             window.location.href = `/game/${room_id}`;  // Переход в игру
         });
-
-        document.addEventListener('DOMContentLoaded', function () {
-    const readyButton = document.getElementById('readyButton');
-
-    // Проверка нажатия на кнопку
-    readyButton.addEventListener('click', function () {
-        // Если кнопка уже нажата, удаляем активный класс, иначе добавляем
-        this.classList.toggle('active');
-        
-        // Можно добавить дополнительную логику, например, отключение других кнопок
-        // if (this.classList.contains('active')) {
-        //     // Кнопка готова, делаем что-то
-        // } else {
-        //     // Кнопка не готова
-        // }
-    });
-});
-
     </script>
 {% endblock %}

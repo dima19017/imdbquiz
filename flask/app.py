@@ -34,7 +34,10 @@ Session(app)
 # Задаем данные для TMDB и proxy
 TMDB_API_KEY = '69c6b9362872f8b7d98effec5badddd6'
 TMDB_API_URL = 'https://api.themoviedb.org/3'
+IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500'
 PROXY = "http://eWSWGwq8:dWAf82nT@166.1.128.144:64044"
+
+MOVIE_COUNTER = 2
 
 sorted_players = {}
 leaderboard = {}
@@ -44,10 +47,9 @@ leaderboard = {}
 # =============================================================================
 # Храним данные игры для каждого room_id
 game_data = {}
-game_hints = {}
 
 # Функция для запуска таймера с несколькими раундами и шагами
-def start_timer(room_id, total_rounds=2, steps_per_round=2, step_duration=15):
+def start_timer(room_id, total_rounds=MOVIE_COUNTER, steps_per_round=3, step_duration=15):
     """
     Запускает таймер с несколькими раундами и шагами в каждом раунде.
     Каждый шаг длится step_duration секунд (по умолчанию 30 секунд).
@@ -132,19 +134,50 @@ def on_get_remaining_time(data):
 
     if room_id in game_data:
         room_info = game_data[room_id]
+        room_hints = game_hints[room_id]
         if room_info['round'] <= room_info['total_rounds']:
             room_info = game_data[room_id]
             # Рассчитываем прошедшее время и оставшееся время
             elapsed_time = time.time() - room_info['round_start_time']
             remaining_time = room_info['step_duration'] - int(elapsed_time)
-            # Отправляем оставшееся время, номер раунда и шаг
-            emit('timer_update', {
-                'remaining_time': remaining_time,
-                'round': room_info['round'],
-                'step': room_info['step'],
-                'total_rounds': room_info['total_rounds'],
-                'steps_per_round': room_info['steps_per_round']
-            })
+
+            # Определяем номер текущего фильма (по номеру раунда)
+            current_movie_index = room_info['round']  # например, 1-й фильм на 1-м раунде, 2-й фильм на 2-м раунде
+            
+            if current_movie_index <= MOVIE_COUNTER:
+                movie_hints = room_hints.get(current_movie_index, {})
+
+                # Собираем подсказки для текущего фильма в зависимости от шага
+                step = room_info['step']
+                hints_to_send = {}
+
+                if step == 1:
+                    # Отправляем первые 2 подсказки (release_date и characters)
+                    hints_to_send = {
+                        'release_date': movie_hints.get('release_date'),
+                        'characters': movie_hints.get('characters')
+                    }
+                elif step == 2:
+                    # Отправляем первые 4 подсказки (release_date, characters, actors_names, vote_average)
+                    hints_to_send = {
+                        'release_date': movie_hints.get('release_date'),
+                        'characters': movie_hints.get('characters'),
+                        'actors_names': movie_hints.get('actors_names'),
+                        'vote_average': movie_hints.get('vote_average')
+                    }
+                elif step == 3:
+                    # Отправляем все подсказки
+                    hints_to_send = movie_hints
+
+                # Отправляем оставшееся время и подсказки для текущего фильма
+                emit('timer_update', {
+                    'remaining_time': remaining_time,
+                    'round': room_info['round'],
+                    'step': room_info['step'],
+                    'total_rounds': room_info['total_rounds'],
+                    'steps_per_round': room_info['steps_per_round'],
+                    'hints': hints_to_send  # Подсказки для клиента
+                })
         else:
             players_scores = []
             for player_id, answers in rooms[room_id]['players_answers'].items():
@@ -445,13 +478,14 @@ def on_start_game(data):
 # =============================================================================
 #   Игра
 # =============================================================================
-MOVIE_COUNTER = 2
 # @app.route('/random_movie', methods=['GET'])
 def random_movie():
     ''' Функция получения случайного фильма с основными актерами '''
-    page = random.randint(1, 20)
+    page = random.randint(1, 5)
+    popular_regions = ['US', 'RU']
+    random_region = random.choice(popular_regions)
     # Формируем URL с параметрами запроса
-    url = f"{TMDB_API_URL}/movie/popular?api_key={TMDB_API_KEY}&language=en-US&page={page}"
+    url = f"{TMDB_API_URL}/movie/popular?api_key={TMDB_API_KEY}&language=en-US&page={page}&region={random_region}"
     logging.info(f"Fetching random movie from TMDB. URL: {url}")
     
     # Отправляем GET-запрос через requests
@@ -474,8 +508,16 @@ def random_movie():
 
             cast_data = cast_response.json()
             actors = cast_data.get('cast', [])
-            top_actors = [{'name': actor['name'], 'character': actor['character'], 'profile_path': actor.get('profile_path')} for actor in actors[:5]]  # Получаем первых 5 актеров
+            top_actors = [{'name': actor['name'], 'character': actor['character'], 'profile_path': actor.get('profile_path')} for actor in actors[:4]]  # Получаем первых 5 актеров
 
+            poster_path = movie.get('poster_path')
+
+            if poster_path:
+                image_url = f"{IMAGE_BASE_URL}{poster_path}"
+            else:
+                image_url = "https://via.placeholder.com/500x750"
+
+            movie['poster_path'] = image_url
             # Включаем актеров в ответ
             movie['actors'] = top_actors
             logging.info(f"Successfully fetched actors for movie: {movie['original_title']}")
@@ -496,6 +538,7 @@ def random_movie():
     #}
     #logging.info(f"Movie selected: {movie}")
     #return movie
+game_hints = {}
 
 @app.route('/game/<room_id>', methods=['GET'])
 @login_required
@@ -508,6 +551,7 @@ def game(room_id):
     # Проверяем, если в комнате еще нет фильма
     if 'movies' not in rooms[room_id]:
         movies_dict = {}
+        hint_dict = {}
 
         for counter in range(MOVIE_COUNTER):
             # Вызов функции получения случайного фильма
@@ -515,17 +559,45 @@ def game(room_id):
             if 'error' in movie:  # Если ошибка при получении фильма
                 logging.error(f"Error fetching random movie for room {room_id}: {movie.get('error')}")
                 return apology("Could not fetch movie details.", code=500)
+            
+            # Сохраняем только 'original_title' для каждого фильма
+            movie_title = movie.get('original_title')
+            movies_dict[counter + 1] = {'original_title': movie_title}
 
-            # Используем счетчик как ключ для каждого фильма
-            movies_dict[counter + 1] = movie  # Счетчик начинается с 1
+            # Извлекаем данные о фильме
+            release_date = movie.get('release_date')
+            actors = movie.get('actors', [])
+            vote_average = movie.get('vote_average')
+            overview = movie.get('overview')
+            original_language = movie.get('original_language')
+            poster_path = movie.get('poster_path')
 
-        rooms[room_id]['movies'] = movies_dict  # Сохраняем фильмы как словарь
+            # Извлекаем список актеров, их имена и персонажи
+            actors_names = [actor['name'] for actor in actors]  # Список имен актеров
+            characters = [actor['character'] for actor in actors]  # Список персонажей актеров
 
-    # Логируем информацию о фильмах
-    logging.info(f"Game started in room {room_id}. Movies: {rooms[room_id]['movies']}")
+            # Создаем объект для подсказок с данными о фильме
+            hint_dict[counter + 1] = {
+                'release_date': release_date,
+                'characters': characters,
+                'actors_names': actors_names,
+                'vote_average': vote_average,
+                'overview': overview,
+                'original_language': original_language,
+                'poster_path': poster_path
+            }
 
-    # Передаем фильмы в шаблон
-    return render_template('game.html', room_id=room_id, movies=rooms[room_id]['movies'])
+            logging.info(f'Added hints for movie {movie_title}: {hint_dict[counter+1]}')
+
+        # Сохраняем фильмы и подсказки в rooms[room_id]
+        rooms[room_id]['movies'] = movies_dict
+        game_hints[room_id] = hint_dict
+
+        logging.info(f'game_hints for room {room_id}: {game_hints[room_id]}')
+
+
+        # Передаем фильмы в шаблон
+        return render_template('game.html', room_id=room_id, movies=rooms[room_id]['movies'])
 
 @socketio.on('submit_answer')
 def on_submit_answer(data):
@@ -534,27 +606,32 @@ def on_submit_answer(data):
     user_id = session.get('user_id')
     answer = data['answer']
     ans_counter = data['answer_counter']
+    step_counter = data['answer_step']
     
     # Логируем входные данные
-    logging.info(f"Received answer submission for room_id: {room_id}, user_id: {user_id}, answer: {answer}, answer_counter: {ans_counter}")
+    logging.info(f"Received answer submission for room_id: {room_id}, user_id: {user_id}, answer: {answer}, answer_counter: {ans_counter}, step_counter: { step_counter }")
     
     correct_answer = rooms[room_id]['movies'][ans_counter]['original_title']
     logging.info(f"Correct answer for movie {ans_counter}: {correct_answer}")
     
     # Проверяем правильность ответа
     is_correct = answer.lower() == correct_answer.lower()
-    logging.info(f"Is the answer correct? {is_correct}")
+    if is_correct == False:
+        value_of_answer = 0
+    else:
+        value_of_answer = 4 - int(step_counter)
+    logging.info(f"Is the answer correct? {is_correct}. Value of answer: { value_of_answer }")
     
     # Сохраняем ответ игрока
-    rooms[room_id]['players_answers'][user_id][ans_counter] = is_correct
+    rooms[room_id]['players_answers'][user_id][ans_counter] = value_of_answer
     logging.info(f"Updated players_answers for user_id {user_id}: {rooms[room_id]['players_answers'][user_id]}")
     
     # Отправляем статус игрока (правильный или неправильный ответ)
-    emit('player_answered', {
-        'user_id': user_id,
-        'is_correct': is_correct
-    })
-    logging.info(f"Sent 'player_answered' event for user_id {user_id}")
+    # emit('player_answered', {
+    #     'user_id': user_id,
+    #     'is_correct': is_correct
+    # })
+    # logging.info(f"Sent 'player_answered' event for user_id {user_id}")
     
     # Проверяем, все ли игроки завершили ответы (сравниваем с MOVIE_COUNTER)
     all_answers_submitted = True
