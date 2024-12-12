@@ -10,6 +10,7 @@ import logging
 import colorlog
 import time
 import threading
+from dotenv import load_dotenv
 from functools import wraps
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session, url_for, jsonify
@@ -32,10 +33,12 @@ Session(app)
 # Глобальные переменные
 # =============================================================================
 # Задаем данные для TMDB и proxy
-TMDB_API_KEY = '69c6b9362872f8b7d98effec5badddd6'
+dotenv_path = '../../.env'
+load_dotenv(dotenv_path)
+TMDB_API_KEY = os.getenv('TMDB_API_KEY')
 TMDB_API_URL = 'https://api.themoviedb.org/3'
 IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500'
-PROXY = "http://eWSWGwq8:dWAf82nT@166.1.128.144:64044"
+PROXY = os.getenv('HTTP_PROXY')
 
 MOVIE_COUNTER = 3
 
@@ -486,6 +489,7 @@ def random_movie():
     page = random.randint(1, 5)
     popular_regions = ['US', 'RU']
     random_region = random.choice(popular_regions)
+    logging.info(f"\nCHECK ENV: {PROXY}, {TMDB_API_KEY}")
     # Формируем URL с параметрами запроса
     url = f"{TMDB_API_URL}/movie/popular?api_key={TMDB_API_KEY}&language=en-US&page={page}&region={random_region}&sort_by=popularity.desc"
     logging.info(f"Fetching random movie from TMDB. URL: {url}")
