@@ -37,7 +37,7 @@ TMDB_API_URL = 'https://api.themoviedb.org/3'
 IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500'
 PROXY = "http://eWSWGwq8:dWAf82nT@166.1.128.144:64044"
 
-MOVIE_COUNTER = 2
+MOVIE_COUNTER = 3
 
 sorted_players = {}
 leaderboard = {}
@@ -49,7 +49,7 @@ leaderboard = {}
 game_data = {}
 
 # Функция для запуска таймера с несколькими раундами и шагами
-def start_timer(room_id, total_rounds=MOVIE_COUNTER, steps_per_round=3, step_duration=15):
+def start_timer(room_id, total_rounds=MOVIE_COUNTER, steps_per_round=3, step_duration=35):
     """
     Запускает таймер с несколькими раундами и шагами в каждом раунде.
     Каждый шаг длится step_duration секунд (по умолчанию 30 секунд).
@@ -388,6 +388,8 @@ def on_join(data):
     logging.info("\nWEBSOCKET: work of join websocket")
     if room_id and user_id:
         if user_id not in rooms[room_id]['players']:
+            # user_name = db.execute("SELECT username FROM users WHERE id = ?", user_id")
+            # rooms[room_id]['players'].append({'id': user_id, 'name': user_name})
             rooms[room_id]['players'].append(user_id)
             join_room(room_id)
             logging.info("\nWEBSOCKET: try to create %s for user %s.\n"
@@ -396,7 +398,7 @@ def on_join(data):
             emit('message', {
                 'msg': f'{user_id} has joined the room.',
                 'players': rooms[room_id]['players'],
-            }, room=room_id)
+            })
         else:
             logging.info("User %s already in room %s. Current players: %s",
                          user_id, room_id, rooms[room_id]['players'])
