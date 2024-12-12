@@ -55,6 +55,18 @@ h2 {
     transition: background-color 0.3s, transform 0.2s;
 }
 
+/* Когда кнопка готова */
+.btn-success {
+    background-color: #28a745; /* Зеленый фон для успешного состояния */
+}
+
+/* Кнопка, когда она нажата (active) */
+.btn.active {
+    background-color: #218838; /* Более темный зеленый для активной кнопки */
+    transform: scale(0.98); /* Легкое сжатие при нажатии */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Тень для активного состояния */
+}
+
 .btn:hover {
     background-color: #a75b46; /* Более тёмный оттенок для наведения */
     transform: scale(1.05);
@@ -208,20 +220,58 @@ h1, h2 {
     text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
 }
 
-/* Стиль для кнопки в обычном состоянии */
-.btn-success {
-    background-color: #28a745; /* зеленый цвет */
+.points {
+    font-weight: bold;
+    color: #6c5b3d;
+}
+
+/* Стиль для кнопки "Готов" */
+#readyButton {
+    background-color: #c97b5d; /* Тёмно-коричневый оттенок для кнопки */
+    color: #ffffff;
+    font-size: 1.1rem;
+    border-radius: 5px;
+    text-transform: uppercase;
+    padding: 10px 20px;
+    margin: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+/* Стиль для кнопки при наведении */
+#readyButton:hover {
+    background-color: #a75b46; /* Более тёмный оттенок для наведения */
+    transform: scale(1.05);
+}
+
+/* Кнопка "Готов", когда она нажата */
+#readyButton.active {
+    background-color: #4caf50; /* Зеленый, когда игрок готов */
     color: white;
 }
 
-/* Стиль для кнопки, когда она нажата */
-.btn-success.active {
-    background-color: #218838; /* темно-зеленый цвет */
-    border-color: #1e7e34; /* темно-зеленый для границы */
+/* Кнопка "Готов", когда она заблокирована */
+#readyButton:disabled {
+    background-color: #ddd; /* Серый цвет для заблокированной кнопки */
+    color: #aaa;
+    cursor: not-allowed;
 }
 
-/* Для фокуса кнопки */
-.btn-success:focus {
-    outline: none;
-    box-shadow: 0 0 5px rgba(40, 167, 69, 0.5);
+.movie-poster {
+    margin-top: 20px;
+    display: inline-block;
+    border: 2px solid #c97b5d;
+    padding: 10px;
+    width: 300px;  /* Задаем ширину контейнера */
+    height: 450px;  /* Задаем высоту контейнера */
+    background-color: #f1e6b8;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.movie-poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;  /* Чтобы изображение заполнило контейнер */
+    border-radius: 8px;
 }
