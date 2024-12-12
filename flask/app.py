@@ -44,18 +44,16 @@ leaderboard = {}
 # =============================================================================
 # Храним данные игры для каждого room_id
 game_data = {}
-
-# Флаг для остановки таймера
-timer_running = True
+game_hints = {}
 
 # Функция для запуска таймера с несколькими раундами и шагами
-def start_timer(room_id, total_rounds=2, steps_per_round=2, step_duration=20):
+def start_timer(room_id, total_rounds=2, steps_per_round=2, step_duration=15):
     """
     Запускает таймер с несколькими раундами и шагами в каждом раунде.
     Каждый шаг длится step_duration секунд (по умолчанию 30 секунд).
     По умолчанию 3 шага в каждом раунде.
     """
-    global timer_running
+    timer_running = True
 
     game_data[room_id] = {
         'round': 1,  # Текущий раунд
@@ -63,26 +61,31 @@ def start_timer(room_id, total_rounds=2, steps_per_round=2, step_duration=20):
         'round_start_time': time.time(),  # Время начала игры
         'total_rounds': total_rounds,  # Общее количество раундов
         'steps_per_round': steps_per_round,  # Количество шагов в раунде
-        'step_duration': step_duration  # Продолжительность каждого шага
+        'step_duration': step_duration,  # Продолжительность каждого шага
+        'timer_running': timer_running
     }
+    # game_hints[room_id] = {
+    #     '1_hints': ,
+    #     '2_hints': ,
+    #     '3_hints':
+    # }
 
     # Функция для обновления времени
     def update_timer():
-        global timer_running
         room_info = game_data[room_id]
 
-        while room_info['round'] <= room_info['total_rounds'] and timer_running:
+        while room_info['round'] <= room_info['total_rounds'] and room_info['timer_running'] == True:
             elapsed_time = time.time() - room_info['round_start_time']
             remaining_time = room_info['step_duration'] - int(elapsed_time)
 
-            # Отправляем оставшееся время, номер раунда и шаг в комнату
-            socketio.emit('timer_update', {
-                'remaining_time': remaining_time,
-                'round': room_info['round'],
-                'step': room_info['step'],
-                'total_rounds': room_info['total_rounds'],
-                'steps_per_round': room_info['steps_per_round']
-            }, room=room_id)
+            # # Отправляем оставшееся время, номер раунда и шаг в комнату
+            # socketio.emit('timer_update', {
+            #     'remaining_time': remaining_time,
+            #     'round': room_info['round'],
+            #     'step': room_info['step'],
+            #     'total_rounds': room_info['total_rounds'],
+            #     'steps_per_round': room_info['steps_per_round']
+            # })
 
             if remaining_time <= 0:
                 # Переходим к следующему шагу
@@ -94,17 +97,27 @@ def start_timer(room_id, total_rounds=2, steps_per_round=2, step_duration=20):
 
                 # Если все шаги в раунде завершены, переходим к следующему раунду
                 if room_info['step'] > room_info['steps_per_round']:
+                    previous_round = room_info['round']
                     room_info['round'] += 1
+                    new_round = room_info['round']
                     room_info['step'] = 1  # Сброс шагов для нового раунда
                     room_info['round_start_time'] = time.time()  # Сброс времени начала нового раунда
 
+                    for player_id in rooms[room_id]['players']:
+                        logging.info(f'Player { player_id } check answer for previous round { previous_round }. New round started { new_round }')
+                        if player_id not in rooms[room_id]['players_answers']:
+                            logging.info(f"Player { player_id } not answered yet, fill his players_answers var with empty value")
+                            rooms[room_id]['players_answers'][player_id] = {}
+                        if previous_round not in rooms[room_id]['players_answers'][player_id]:
+                            logging.info(f' Player { player_id } not answered in previous round, fill his var with false')
+                            rooms[room_id]['players_answers'][player_id][previous_round] = False
                     # Информируем о завершении раунда
                     socketio.emit('round_finished', {'round': room_info['round'] - 1}, room=room_id)
 
                 # Если все раунды закончены
                 if room_info['round'] > room_info['total_rounds']:
                     socketio.emit('game_results', {'message': 'All rounds are over!'}, room=room_id)
-                    timer_running = False
+                    room_info['timer_running'] = False
                     print(f"Таймер для комнаты {room_id} остановлен после завершения всех раундов.")
 
             time.sleep(1)  # Пауза в 1 секунду
@@ -158,6 +171,8 @@ def on_get_remaining_time(data):
             })
             logging.info(f"Sent 'game_results' event. Leaderboard: {leaderboard}")
     else:
+        start_timer(room_id)
+
         logging.error(f"Room {room_id} not found in game data.")
 
 @app.route('/api/timer', methods=['GET'])
@@ -386,9 +401,11 @@ def on_ready(data):
     user_id = session.get('user_id')
 
     if room_id and user_id:
+        rooms[room_id].setdefault('players_answers', {})
         # Добавляем пользователя в список готовых игроков
         if room_id in rooms and user_id not in rooms[room_id].get('ready_players', []):
             rooms[room_id].setdefault('ready_players', []).append(user_id)
+            rooms[room_id]['players_answers'].setdefault(user_id, {})  # Если нет, создаем для user_id пустой словарь
             print(f"User {user_id} is ready in room {room_id}. Ready players: {rooms[room_id]['ready_players']}")
         elif room_id in rooms and user_id in rooms[room_id].get('ready_players', []):
             rooms[room_id]['ready_players'].remove(user_id)
@@ -421,7 +438,7 @@ def on_start_game(data):
             # Получаем случайный фильм
             # Отправляем подсказки всем игрокам через WebSocket
             emit('game_started', {'msg': 'The game has started!'}, room=room_id)
-            start_timer(room_id)
+            # start_timer(room_id)
         else:
             print(f"User {user_id} tried to start the game without being the creator.")
 
@@ -529,8 +546,6 @@ def on_submit_answer(data):
     logging.info(f"Is the answer correct? {is_correct}")
     
     # Сохраняем ответ игрока
-    rooms[room_id].setdefault('players_answers', {})
-    rooms[room_id]['players_answers'].setdefault(user_id, {})  # Если нет, создаем для user_id пустой словарь
     rooms[room_id]['players_answers'][user_id][ans_counter] = is_correct
     logging.info(f"Updated players_answers for user_id {user_id}: {rooms[room_id]['players_answers'][user_id]}")
     
