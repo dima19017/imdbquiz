@@ -485,7 +485,7 @@ def random_movie():
     popular_regions = ['US', 'RU']
     random_region = random.choice(popular_regions)
     # Формируем URL с параметрами запроса
-    url = f"{TMDB_API_URL}/movie/popular?api_key={TMDB_API_KEY}&language=en-US&page={page}&region={random_region}"
+    url = f"{TMDB_API_URL}/movie/popular?api_key={TMDB_API_KEY}&language=en-US&page={page}&region={random_region}&sort_by=popularity.desc"
     logging.info(f"Fetching random movie from TMDB. URL: {url}")
     
     # Отправляем GET-запрос через requests
