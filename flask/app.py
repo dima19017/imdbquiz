@@ -285,6 +285,8 @@ def login():
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], pas):
             return apology("invalid username and/or password", 403)
         session["user_id"] = rows[0]["id"]
+        session["username"] = rows[0]["username"]
+        logging.info(f'\nTRY TO SESSION STORE USERNAME { session["username"]}')
         return redirect("/")
     else:
         return render_template("login.html")
@@ -348,25 +350,29 @@ def handle_create_room():
     room_id = 'room_' + str(len(rooms) + 1)
     rooms[room_id] = {'creator': '', 'players': []}
     session['room_id'] = room_id
+    rows = db.execute("SELECT username FROM users WHERE id = ?", user_id)
+    username = rows[0]["username"]
+
     logging.info(
-        "User %s pressed 'create room' button.\n"
+        "User %s with name %s pressed 'create room' button.\n"
         "Room %s created. Current rooms state: %s.\n"
         "room_id %s saved in session.\n"
         "End of /handle_create_room route, redirect to /room.\n",
-        user_id, room_id, rooms, room_id)
-    return redirect(url_for('room', room_id=room_id))
+        user_id, username, room_id, rooms, room_id)
+    return redirect(url_for('room', room_id=room_id, username=username))
 
 @app.route('/room/<room_id>')
 @login_required
 def room(room_id):
     """ route для отображения страницы комнаты по room_id, который called из /handle_create_room """
     user_id = session.get('user_id')
+    username = session.get('username')
     logging.info("This is work of /room/<room_id> route.")
     if room_id in rooms:
-        logging.info("Render %s for user %s.\n"
+        logging.info("Render %s for user %s with name %s.\n"
                      "End of /room/<room_id> route for user %s",
-                     room_id, user_id, user_id)
-        return render_template('room.html', room_id=room_id, rooms=rooms.get(room_id))
+                     room_id, user_id, username, user_id)
+        return render_template('room.html', room_id=room_id, rooms=rooms.get(room_id), user_id=user_id)
     logging.error("Can't create room %s.\n"
                 "End of /room/<room_id> route. Error", room_id)
     return apology("Room not found", code=404)
@@ -383,6 +389,7 @@ def handle_join_room():
     else:
         return apology("Room not found", code=404)
 
+usernames = {}
 @socketio.on('join')
 def on_join(data):
     """ join """
@@ -391,9 +398,16 @@ def on_join(data):
     logging.info("\nWEBSOCKET: work of join websocket")
     if room_id and user_id:
         if user_id not in rooms[room_id]['players']:
-            # user_name = db.execute("SELECT username FROM users WHERE id = ?", user_id")
-            # rooms[room_id]['players'].append({'id': user_id, 'name': user_name})
             rooms[room_id]['players'].append(user_id)
+            rooms[room_id].setdefault('ready_players', [])
+
+            conn = sqlite3.connect('imdbquiz.db')
+            cursor = conn.cursor()
+            player_ids = rooms[room_id]['players']
+            placeholders = ', '.join('?' for _ in player_ids)
+            cursor.execute(f"SELECT username FROM users WHERE id IN ({placeholders})", player_ids)
+            usernames = [username[0] for username in cursor.fetchall()]
+
             join_room(room_id)
             logging.info("\nWEBSOCKET: try to create %s for user %s.\n"
              "End of /room/<room_id> route. Render template room.html.\n",
@@ -401,7 +415,10 @@ def on_join(data):
             emit('message', {
                 'msg': f'{user_id} has joined the room.',
                 'players': rooms[room_id]['players'],
-            })
+                'usernames': usernames,
+                'ready_players': rooms[room_id]['ready_players']
+            }, room=room_id)
+            conn.close()
         else:
             logging.info("User %s already in room %s. Current players: %s",
                          user_id, room_id, rooms[room_id]['players'])
@@ -409,7 +426,7 @@ def on_join(data):
             rooms[room_id]['creator'] = user_id
             emit('creator', {
                 'msg': f'{user_id} has joined the room.',
-                'creator': rooms[room_id]['players'],
+                'creator': rooms[room_id]['creator'],
             }, room=room_id)
     else:
         logging.error("missing %s or %s", room_id, user_id)
@@ -424,11 +441,20 @@ def on_leave(data):
         # Удаляем пользователя из списка участников комнаты
         if room_id in rooms and user_id in rooms[room_id]['players']:
             rooms[room_id]['players'].remove(user_id)
+            conn = sqlite3.connect('imdbquiz.db')
+            cursor = conn.cursor()
+            player_ids = rooms[room_id]['players']
+            placeholders = ', '.join('?' for _ in player_ids)
+            cursor.execute(f"SELECT username FROM users WHERE id IN ({placeholders})", player_ids)
+            usernames = [username[0] for username in cursor.fetchall()]
         # Отправляем обновлённый список игроков всем участникам комнаты
         emit('message', {
             'msg': f'{user_id} has left the room.',
-            'players': rooms[room_id]['players']
+            'players': rooms[room_id]['players'],
+            'usernames': usernames,
+            'ready_players': rooms[room_id]['ready_players'],
         }, room=room_id)
+        conn.close()
         logging.info("\nWEBSOCKET: %s has left the room %s. Current players: %s",
                      user_id, room_id, rooms[room_id]['players'])
 
@@ -444,20 +470,34 @@ def on_ready(data):
         if room_id in rooms and user_id not in rooms[room_id].get('ready_players', []):
             rooms[room_id].setdefault('ready_players', []).append(user_id)
             rooms[room_id]['players_answers'].setdefault(user_id, {})  # Если нет, создаем для user_id пустой словарь
+            conn = sqlite3.connect('imdbquiz.db')
+            cursor = conn.cursor()
+            player_ids = rooms[room_id]['players']
+            placeholders = ', '.join('?' for _ in player_ids)
+            cursor.execute(f"SELECT username FROM users WHERE id IN ({placeholders})", player_ids)
+            usernames = [username[0] for username in cursor.fetchall()]
             print(f"User {user_id} is ready in room {room_id}. Ready players: {rooms[room_id]['ready_players']}")
+
         elif room_id in rooms and user_id in rooms[room_id].get('ready_players', []):
             rooms[room_id]['ready_players'].remove(user_id)
+            conn = sqlite3.connect('imdbquiz.db')
+            cursor = conn.cursor()
+            player_ids = rooms[room_id]['players']
+            placeholders = ', '.join('?' for _ in player_ids)
+            cursor.execute(f"SELECT username FROM users WHERE id IN ({placeholders})", player_ids)
+            usernames = [username[0] for username in cursor.fetchall()]
             print(f"User {user_id} NOT ready in room {room_id}. Ready players: {rooms[room_id]['ready_players']}")
         # Оповещаем всех игроков о текущем состоянии комнаты
         emit('update_ready_players', {
             'ready_players': rooms[room_id]['ready_players'],
-            'players': rooms[room_id]['players']
+            'players': rooms[room_id]['players'],
+            'usernames': usernames
         }, room=room_id)
-
+        conn.close()
         # Проверяем, все ли игроки готовы
         if len(rooms[room_id]['ready_players']) == len(rooms[room_id]['players']):
             # Если все игроки готовы, активируем кнопку "Начать игру" только для создателя
-            emit('enable_start_game', {'can_start': True}, room=room_id)
+            emit('enable_start_game', {'can_start': True, 'creator': rooms[room_id]['creator']}, room=room_id)
             print(f"In {room_id} Game can be started. Ready players: {rooms[room_id]['ready_players']}")
         else:
             emit('enable_start_game', {'can_start': False}, room=room_id)
