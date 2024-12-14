@@ -175,10 +175,10 @@ def on_get_remaining_time(data):
             for player_id, answers in rooms[room_id]['players_answers'].items():
                 logging.info(f"Checking answers for player_id {player_id}: {answers}")
                 correct_answers_count = sum(answers.values())  # Количество правильных ответов
-                # rows_u = db.execute("SELECT username FROM users WHERE user_id = ?", player_id)
-                # player_username = rows_u[0]['username']
-                # players_scores.append((player_id, correct_answers_count, player_username))  # Добавляем в список (ID игрока, количество правильных ответов)
-                players_scores.append((player_id, correct_answers_count))  # Добавляем в список (ID игрока, количество правильных ответов)
+                rows_u = db.execute("SELECT username FROM users WHERE id = ?", player_id)
+                player_username = rows_u[0]['username']
+                players_scores.append((player_id, correct_answers_count, player_username))  # Добавляем в список (ID игрока, количество правильных ответов)
+                # players_scores.append((player_id, correct_answers_count))  # Добавляем в список (ID игрока, количество правильных ответов)
                 logging.info(f"Player {player_id} has {correct_answers_count} correct answers.")
 
             sorted_players = sorted(players_scores, key=lambda x: x[1], reverse=True)
@@ -191,13 +191,23 @@ def on_get_remaining_time(data):
                 'user_id': player[0],
                 'correct_answers': player[1],
                 'rank': index + 1,
-                # 'username': player[2]
+                'username': player[2]
             } for index, player in enumerate(sorted_players)]
 
             emit('game_results', {
                 'leaderboard': leaderboard
             })
+
             game_data[room_id]['timer_running'] = False
+            rooms[room_id] = {
+                "creator": "",  # Оставляем создателя, если необходимо
+                "movies": {},  # Очищаем список фильмов
+                "players": [],  # Очищаем список игроков
+                "players_answers": {},  # Очищаем ответы игроков
+                "ready_players": []  # Очищаем список готовых игроков
+            }
+            del game_data[room_id]
+            del game_hints[room_id]
             logging.info(f"Sent 'game_results' event. Leaderboard: {leaderboard}")
     else:
         start_timer(room_id)
@@ -779,7 +789,8 @@ def on_submit_answer(data):
 
         emit('game_results', {
             'leaderboard': leaderboard
-        }, room=room_id)
+        })
+
         rooms[room_id] = {
             "creator": "",  # Оставляем создателя, если необходимо
             "movies": {},  # Очищаем список фильмов
