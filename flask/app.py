@@ -40,7 +40,7 @@ TMDB_API_URL = 'https://api.themoviedb.org/3'
 IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500'
 PROXY = os.getenv('HTTP_PROXY')
 
-MOVIE_COUNTER = 2
+MOVIE_COUNTER = 1
 
 sorted_players = {}
 leaderboard = {}
@@ -206,6 +206,7 @@ def on_get_remaining_time(data):
                 "players_answers": {},  # Очищаем ответы игроков
                 "ready_players": []  # Очищаем список готовых игроков
             }
+            time.sleep(5)
             del game_data[room_id]
             del game_hints[room_id]
             logging.info(f"Sent 'game_results' event. Leaderboard: {leaderboard}")
@@ -260,74 +261,6 @@ def after_request(response):
     # старый заголовок для совместимости с http 1
     response.headers["Pragma"] = "no-cache"
     return response
-
-#def process_game_results(room_id, MOVIE_COUNTER):
-#    """
-#    Проверяет, все ли игроки завершили ответы, сортирует игроков по правильным ответам,
-#    отправляет результаты игры и очищает данные комнаты.
-#    """
-#    all_answers_submitted = True
-#    players_scores = []
-#
-#    logging.info(f"Checking if all answers have been submitted for room_id {room_id}")
-#
-#    for player_id, answers in rooms[room_id]['players_answers'].items():
-#        logging.info(f"Checking answers for player_id {player_id}: {answers}")
-#        
-#        # Проверяем, что у игрока есть ответы на все фильмы (сравниваем количество ответов с MOVIE_COUNTER)
-#        if len(answers) == MOVIE_COUNTER:  # У игрока должно быть ответов, равных количеству фильмов
-#            logging.info(f"Player {player_id} has answered all questions.")
-#            
-#            # Получаем username из базы данных
-#            rows_u = db.execute("SELECT username FROM users WHERE id = ?", player_id)
-#            username = rows_u[0]['username']
-#            logging.info(f'Username { username } fetched from DB for user { player_id }')
-#
-#            # Подсчитываем количество правильных ответов для этого игрока
-#            correct_answers_count = sum(answers.values())  # Количество правильных ответов
-#            players_scores.append((player_id, correct_answers_count, username))  # Добавляем в список (ID игрока, количество правильных ответов)
-#            logging.info(f"Player {player_id} has {correct_answers_count} correct answers.")
-#        else:
-#            all_answers_submitted = False
-#            logging.info(f"Player {player_id} has not answered all questions. Expected {MOVIE_COUNTER} answers but got {len(answers)}.")
-#            break
-#
-#    if all_answers_submitted:
-#        # Сортируем игроков по количеству правильных ответов (от большего к меньшему)
-#        sorted_players = sorted(players_scores, key=lambda x: x[1], reverse=True)
-#
-#        # Логируем перед отправкой результата
-#        logging.info(f"All players have submitted their answers. Sending game results.")
-#        
-#        # Подготовка списка победителей в формате для отображения на клиенте
-#        leaderboard = [{
-#            'user_id': player[0],
-#            'correct_answers': player[1],
-#            'username': player[2],
-#            'rank': index + 1  # Индекс + 1 - это место игрока
-#        } for index, player in enumerate(sorted_players)]
-#
-#        # Отправляем результаты игры в комнату
-#        emit('game_results', {
-#            'leaderboard': leaderboard
-#        }, room=room_id)
-#
-#        # Очищаем данные комнаты
-#        rooms[room_id] = {
-#            "creator": "",  # Оставляем создателя, если необходимо
-#            "movies": {},  # Очищаем список фильмов
-#            "players": [],  # Очищаем список игроков
-#            "players_answers": {},  # Очищаем ответы игроков
-#            "ready_players": []  # Очищаем список готовых игроков
-#        }
-#
-#        # Удаляем дополнительные данные, связанные с игрой
-#        del game_data[room_id]
-#        del game_hints[room_id]
-#
-#        logging.info(f"Sent 'game_results' event. Leaderboard: {leaderboard}")
-#    else:
-#        logging.info(f"Not all players have submitted their answers yet.")
 
 # =============================================================================
 # Основные маршруты
@@ -790,6 +723,7 @@ def on_submit_answer(data):
         emit('game_results', {
             'leaderboard': leaderboard
         })
+        game_data[room_id]['timer_running'] = False
 
         rooms[room_id] = {
             "creator": "",  # Оставляем создателя, если необходимо
@@ -798,7 +732,7 @@ def on_submit_answer(data):
             "players_answers": {},  # Очищаем ответы игроков
             "ready_players": []  # Очищаем список готовых игроков
         }
-
+        time.sleep(5)
         del game_data[room_id]
         del game_hints[room_id]
 
