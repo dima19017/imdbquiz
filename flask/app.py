@@ -194,7 +194,7 @@ def on_get_remaining_time(data):
                 'rank': index + 1,
                 'username': player[2]
             } for index, player in enumerate(sorted_players)]
-
+            logging.info('sending via timer')
             emit('game_results', {
                 'leaderboard': leaderboard
             })
@@ -719,7 +719,7 @@ def on_submit_answer(data):
             'username': player[2],
             'rank': index + 1  # Индекс + 1 - это место игрока
         } for index, player in enumerate(sorted_players)]
-
+        logging.info('Sending via submit_buttons')
         emit('game_results', {
             'leaderboard': leaderboard
         })
