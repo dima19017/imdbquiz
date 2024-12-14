@@ -8,61 +8,58 @@
 {% block main %}
     <!-- Здесь будет отображаться номер комнаты -->
     <div id="room-info">
-        <h3>Current Room</h3>
-        <p><strong>Room ID:</strong> <span id="room-id">Loading...</span></p>
+        <p><strong></strong> <span id="room-id">Loading...</span></p>
         <h2>Game Timer</h2>
-
         <p>Time left: <span id="timer">Loading...</span></p>
         <p>Step: <span id="step">Loading...</span></p>
         <p>Round: <span id="round">Loading...</span> / <span id="totalRounds">Loading...</span></p>
 
+        <h1 id="game-leaderboard" hidden>Game Leaderboard</h1>
+        <table id="table-leaderboard" border="1" hidden>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Username</th>
+                    <th>Points</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Здесь будут отображаться результаты -->
+            </tbody>
+        </table>
+
+        <!-- Кнопка будет скрыта по умолчанию -->
+        <button id="nextRoomButton" style="display: none;">Go to Next Room</button>
     </div>
-        <div id="movie-hints_1">
-            <!-- <p><strong>Title:</strong> <span id="movie-title">Loading...</span></p> -->
-            <p><strong>Release_date:</strong> <span id="movie-release-date">Loading...</span></p>
-            <p><strong>Characters:</strong> <span id="movie-characters">Loading...</span></p>
-        </div>
-        <div id="movie-hints_2">
-            <!-- <p><strong>Title:</strong> <span id="movie-title">Loading...</span></p> -->
-            <p><strong>Actors:</strong> <span id="movie-actors">Loading...</span></p>
-            <p><strong>Vote Average:</strong> <span id="movie-vote-average">Loading...</span></p>
-            <!-- <p><strong>Poster:</strong> <span id="movie-poster" class="movie-poster">Loading...</span></p> -->
-        </div>
-        <div id="movie-hints_3">
-            <!-- <p><strong>Title:</strong> <span id="movie-title">Loading...</span></p> -->
-            <p><strong>Overview:</strong> <span id="movie-overview">Loading...</span></p>
-            <p><strong>Original_language:</strong> <span id="movie-original-language">Loading...</span></p>
-        </div>
+
+    <div id="movie-hints_1">
+        <p><strong>Release_date:</strong> <span id="movie-release-date">Loading...</span></p>
+        <p><strong>Characters:</strong> <span id="movie-characters">Loading...</span></p>
+    </div>
+
+    <div id="movie-hints_2">
+        <p><strong>Actors:</strong> <span id="movie-actors">Loading...</span></p>
+        <p><strong>Vote Average:</strong> <span id="movie-vote-average">Loading...</span></p>
+    </div>
+
+    <div id="movie-hints_3">
+        <p><strong>Overview:</strong> <span id="movie-overview">Loading...</span></p>
+        <p><strong>Original_language:</strong> <span id="movie-original-language">Loading...</span></p>
+    </div>
 
     <input type="text" id="movieAnswer" placeholder="Enter your guess here">
     <button id="submitAnswer" class="btn btn-primary">Submit Answer</button>
 
-    <h1>Game Leaderboard</h1>
-
-    <table id="leaderboard" border="1">
-        <thead>
-            <tr>
-                <th>Rank</th>
-                <th>User ID</th>
-                <th>Points</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Здесь будут отображаться результаты -->
-        </tbody>
-    </table>
-
-    <!-- Кнопка будет скрыта по умолчанию -->
-    <button id="nextRoomButton" style="display: none;">Go to Next Room</button>
-
     <!-- <ul id="playersList"> -->
         <!-- Список игроков, отображаем их ответы -->
     </ul>
+
     <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
     <script>
         var socket = io.connect('http://' + document.domain + ':' + location.port);
         const room_id = "{{ room_id }}";
         var movie_id = "{{ movie_id }}";  // ID фильма, который был выбран для игры
+        var TimerActive = true;
         document.getElementById('room-id').innerText = room_id;
 
         // Создаем глобальную переменную для текущего раунда
@@ -70,106 +67,98 @@
         let totalRounds = 0;
         let canSubmitAnswer = true;
 
-        // socket.emit('join', { room_id: room_id });
-    // Функция для запроса оставшегося времени каждую секунду
-    function requestRemainingTime(room_id) {
-        setInterval(() => {
-            //console.log("Время запрошено")
-            socket.emit('get_remaining_time', { room_id: room_id });
-        }, 1000);  // Запрос каждую секунду
-    }
-
-    // При загрузке страницы запрашиваем оставшееся время
-    window.onload = function() {
-        requestRemainingTime(room_id);  // Запуск таймера на получение времени
-    };
-
-    // Получение обновлений о времени и шагах
-    socket.on('timer_update', function(data) {
-        const remainingTime = data.remaining_time;
-        previousRound = currentRound;
-        currentRound = data.round;
-        currentStep = data.step;
-        totalRounds = data.total_rounds;
-        stepsPerRound = data.steps_per_round;
-    
-        // Обновляем данные на экране
-        document.getElementById('timer').textContent = remainingTime + ' seconds';
-        document.getElementById('round').textContent = currentRound;
-        document.getElementById('step').textContent = currentStep + '/' + stepsPerRound;
-        document.getElementById('totalRounds').textContent = totalRounds;
-    
-        // Логика для блокировки и разблокировки кнопки отправки ответа
-        if (canSubmitAnswer === false && previousRound < currentRound) {
-            console.log("Включаем кнопку");
-            document.getElementById('submitAnswer').disabled = false;  // Разблокируем кнопку
-            canSubmitAnswer = true;  // Разрешаем отправку ответа в следующем раунде
+        // Функция для запроса оставшегося времени каждую секунду
+        function requestRemainingTime(room_id) {
+            setInterval(() => {
+                if (TimerActive === true) {
+                    console.log(`Время запрошено потому что ${TimerActive}`);
+                    socket.emit('get_remaining_time', { room_id: room_id });
+                }
+            }, 1000);  // Запрос каждую секунду
         }
-    // Получаем подсказки для текущего фильма
-    const hints = data.hints;
 
-    // Обновляем блок подсказок для текущего фильма
-    document.getElementById('movie-release-date').innerText = hints.release_date || 'Loading...';
-    document.getElementById('movie-characters').innerText = hints.characters ? hints.characters.join(', ') : 'Loading...';
-    document.getElementById('movie-actors').innerText = hints.actors_names ? hints.actors_names.join(', ') : 'Loading...';
-    document.getElementById('movie-vote-average').innerText = hints.vote_average || 'Loading...';
-    document.getElementById('movie-overview').innerText = hints.overview || 'Loading...';
-    document.getElementById('movie-original-language').innerText = hints.original_language || 'Loading...';
-//     // document.getElementById('movie-poster').innerText = hints.poster_path || 'Loading...';
-//     const moviePosterContainer = document.getElementById('movie-poster');
-// 
-//         // Проверяем, если URL постера существует
-//         if (data.poster_path) {
-//         // Создаем новый элемент <img>
-//         const img = document.createElement('img');
-//         img.src = data.poster_path;  // Устанавливаем путь к картинке
-//         title = poster;
-//         img.alt = data.title;  // Альтернативный текст (название фильма)
-// 
-//         // Вставляем картинку в контейнер
-//         moviePosterContainer.appendChild(img);
-//     } else {
-//         // Если нет изображения, выводим сообщение
-//         moviePosterContainer.innerText = 'No poster available';
-//     }
-// 
-});
+        // При загрузке страницы запрашиваем оставшееся время
+        window.onload = function() {
+            requestRemainingTime(room_id);  // Запуск таймера на получение времени
+        };
 
-    document.getElementById('submitAnswer').addEventListener('click', function() {
-        console.log("Кнопка отправки ответа нажата.");
-    
-        // Проверяем, можно ли отправить ответ
-        if (!canSubmitAnswer) {
-            console.log("Ответ не может быть отправлен, так как ответ на этот раунд уже был отправлен.");
-            return;  // Если ответ нельзя отправить, выходим из функции
-        }
-        var answer = document.getElementById('movieAnswer').value;
-    
-        // Отправляем ответ на сервер
-        socket.emit('submit_answer', { room_id: room_id, answer: answer, answer_step: currentStep, answer_counter: currentRound });
-        console.log("Ответ отправлен на сервер для комнаты ", room_id, " с раундом ", currentRound);
-    
-        // Очищаем поле ввода
-        document.getElementById('movieAnswer').value = '';
-        console.log("Поле ввода очищено.");
-    
-        // Отключаем кнопку отправки после отправки ответа
-        document.getElementById('submitAnswer').disabled = true;
-        console.log("Кнопка отправки ответа заблокирована.");
-    
-        // Запрещаем отправку ответа до следующего раунда
-        canSubmitAnswer = false;
-        console.log("Флаг canSubmitAnswer установлен в false.");
-    });
+        // Получение обновлений о времени и шагах
+        socket.on('timer_update', function(data) {
+            const remainingTime = data.remaining_time;
+            previousRound = currentRound;
+            currentRound = data.round;
+            currentStep = data.step;
+            totalRounds = data.total_rounds;
+            stepsPerRound = data.steps_per_round;
 
+            // Обновляем данные на экране
+            document.getElementById('timer').textContent = remainingTime + ' seconds';
+            document.getElementById('round').textContent = currentRound;
+            document.getElementById('step').textContent = currentStep + '/' + stepsPerRound;
+            document.getElementById('totalRounds').textContent = totalRounds;
+
+            // Логика для блокировки и разблокировки кнопки отправки ответа
+            if (canSubmitAnswer === false && previousRound < currentRound) {
+                console.log("Включаем кнопку");
+                document.getElementById('submitAnswer').disabled = false;  // Разблокируем кнопку
+                canSubmitAnswer = true;  // Разрешаем отправку ответа в следующем раунде
+            }
+
+            // Получаем подсказки для текущего фильма
+            const hints = data.hints;
+
+            // Обновляем блок подсказок для текущего фильма
+            document.getElementById('movie-release-date').innerText = hints.release_date || 'Loading...';
+            document.getElementById('movie-characters').innerText = hints.characters ? hints.characters.join(', ') : 'Loading...';
+            document.getElementById('movie-actors').innerText = hints.actors_names ? hints.actors_names.join(', ') : 'Loading...';
+            document.getElementById('movie-vote-average').innerText = hints.vote_average || 'Loading...';
+            document.getElementById('movie-overview').innerText = hints.overview || 'Loading...';
+            document.getElementById('movie-original-language').innerText = hints.original_language || 'Loading...';
+        });
+
+        document.getElementById('submitAnswer').addEventListener('click', function() {
+            console.log("Кнопка отправки ответа нажата.");
+
+            // Проверяем, можно ли отправить ответ
+            if (!canSubmitAnswer) {
+                console.log("Ответ не может быть отправлен, так как ответ на этот раунд уже был отправлен.");
+                return;  // Если ответ нельзя отправить, выходим из функции
+            }
+
+            var answer = document.getElementById('movieAnswer').value;
+
+            // Отправляем ответ на сервер
+            socket.emit('submit_answer', { room_id: room_id, answer: answer, answer_step: currentStep, answer_counter: currentRound });
+            console.log("Ответ отправлен на сервер для комнаты ", room_id, " с раундом ", currentRound);
+
+            // Очищаем поле ввода
+            document.getElementById('movieAnswer').value = '';
+            console.log("Поле ввода очищено.");
+
+            // Отключаем кнопку отправки после отправки ответа
+            document.getElementById('submitAnswer').disabled = true;
+            console.log("Кнопка отправки ответа заблокирована.");
+
+            // Запрещаем отправку ответа до следующего раунда
+            canSubmitAnswer = false;
+            console.log("Флаг canSubmitAnswer установлен в false.");
+        });
 
         socket.on('game_results', function(data) {
+            console.log("Receive 'game_results socket")
+            TimerActive = false;
+            console.log(`Change TimerActive to ${TimerActive}`)
             // скрываем таймер
             document.getElementById('timer').hidden = true;
+            document.getElementById('game-leaderboard').hidden = false;
+            document.getElementById('table-leaderboard').hidden = false;
+
             // Получаем список лидеров
+            console.log(`receive leaderboard ${data.leaderboard}`);
             const leaderboard = data.leaderboard;
+
             // Получаем таблицу и ее тело
-            const tableBody = document.querySelector('#leaderboard tbody');
+            const tableBody = document.querySelector('#table-leaderboard tbody');
             // Очищаем текущие строки таблицы
             tableBody.innerHTML = '';
             // Заполняем таблицу новыми результатами
@@ -181,7 +170,7 @@
                 row.appendChild(rankCell);
 
                 const userIdCell = document.createElement('td');
-                userIdCell.textContent = player.user_id;
+                userIdCell.textContent = player.username;
                 row.appendChild(userIdCell);
 
                 const correctAnswersCell = document.createElement('td');
@@ -199,9 +188,11 @@
                 window.location.href = "/room/" + room_id;  // Переход в следующую комнату
             });
         });
-    // Получение события завершения раунда
-    socket.on('round_finished', function(data) {
-        console.log('Round ' + data.round + ' finished');
-    });
+
+        // Получение события завершения раунда
+        socket.on('round_finished', function(data) {
+            console.log('Round ' + data.round + ' finished');
+        });
     </script>
 {% endblock %}
+

@@ -6,14 +6,13 @@
 {% endblock %}
 
 {% block main %}
-    <h2>Room {{ room_id }}</h2>
+    <h2>{{ room_id }}</h2>
     <p>Players in the room:</p>
     <ul id="players">
         {% for player in rooms['players'] %}
             <li>{{ player.name }} - ID {{ player.id }} ({{ player.ready_status }})</li>
         {% endfor %}
     </ul>
-    <p><strong id="creator-label">Creator:</strong> {{ rooms['creator'] }}</p>
     <button id="leaveRoom" class="btn btn-danger" href="/">Leave Room</button>
     <!-- Кнопка "Готов" для всех игроков -->
     <button id="readyButton" class="btn">Ready</button>
@@ -80,21 +79,20 @@
                 li.textContent = `${username} - ID ${playerId} (${readyStatus})`;
                 playersList.appendChild(li);
             });
-
-            // Если все игроки нажали "Готов", разрешаем старт игры для создателя
             socket.emit('enable_start_game', { room_id: room_id });
         });
 
         // Обработка активации кнопки "Начать игру" для создателя
         socket.on('enable_start_game', function(data) {
             var startGameButton = document.getElementById('startGameButton');
-            if (data.can_start === true) {
+            if (data.can_start == true) {
                 startGameButton.disabled = false;  // Разрешаем нажать кнопку "Начать игру"
                 console.log(`user_id = ${user_id}, creator = ${data.creator}`);
-                if (user_id === data.creator) {
+                if (user_id == data.creator) {
                     startGameButton.hidden = false;
                 }
             } else {
+                console.log('Close start_game_button')
                 startGameButton.disabled = true;
                 startGameButton.hidden = true;
             }

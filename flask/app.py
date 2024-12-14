@@ -40,7 +40,7 @@ TMDB_API_URL = 'https://api.themoviedb.org/3'
 IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500'
 PROXY = os.getenv('HTTP_PROXY')
 
-MOVIE_COUNTER = 3
+MOVIE_COUNTER = 2
 
 sorted_players = {}
 leaderboard = {}
@@ -52,14 +52,12 @@ leaderboard = {}
 game_data = {}
 
 # Функция для запуска таймера с несколькими раундами и шагами
-def start_timer(room_id, total_rounds=MOVIE_COUNTER, steps_per_round=3, step_duration=35):
+def start_timer(room_id, total_rounds=MOVIE_COUNTER, steps_per_round=3, step_duration=5):
     """
     Запускает таймер с несколькими раундами и шагами в каждом раунде.
     Каждый шаг длится step_duration секунд (по умолчанию 30 секунд).
     По умолчанию 3 шага в каждом раунде.
     """
-    timer_running = True
-
     game_data[room_id] = {
         'round': 1,  # Текущий раунд
         'step': 1,   # Текущий шаг
@@ -67,7 +65,7 @@ def start_timer(room_id, total_rounds=MOVIE_COUNTER, steps_per_round=3, step_dur
         'total_rounds': total_rounds,  # Общее количество раундов
         'steps_per_round': steps_per_round,  # Количество шагов в раунде
         'step_duration': step_duration,  # Продолжительность каждого шага
-        'timer_running': timer_running
+        'timer_running': True
     }
     # game_hints[room_id] = {
     #     '1_hints': ,
@@ -82,15 +80,6 @@ def start_timer(room_id, total_rounds=MOVIE_COUNTER, steps_per_round=3, step_dur
         while room_info['round'] <= room_info['total_rounds'] and room_info['timer_running'] == True:
             elapsed_time = time.time() - room_info['round_start_time']
             remaining_time = room_info['step_duration'] - int(elapsed_time)
-
-            # # Отправляем оставшееся время, номер раунда и шаг в комнату
-            # socketio.emit('timer_update', {
-            #     'remaining_time': remaining_time,
-            #     'round': room_info['round'],
-            #     'step': room_info['step'],
-            #     'total_rounds': room_info['total_rounds'],
-            #     'steps_per_round': room_info['steps_per_round']
-            # })
 
             if remaining_time <= 0:
                 # Переходим к следующему шагу
@@ -119,11 +108,11 @@ def start_timer(room_id, total_rounds=MOVIE_COUNTER, steps_per_round=3, step_dur
                     # Информируем о завершении раунда
                     socketio.emit('round_finished', {'round': room_info['round'] - 1}, room=room_id)
 
-                # Если все раунды закончены
-                if room_info['round'] > room_info['total_rounds']:
-                    socketio.emit('game_results', {'message': 'All rounds are over!'}, room=room_id)
-                    room_info['timer_running'] = False
-                    print(f"Таймер для комнаты {room_id} остановлен после завершения всех раундов.")
+                # # Если все раунды закончены
+                # if room_info['round'] > room_info['total_rounds']:
+                #     socketio.emit('game_results', {'message': 'All rounds are over!'}, room=room_id)
+                #     game_data['timer_running'] = False
+                #     print(f"Таймер для комнаты {room_id} остановлен после завершения всех раундов.")
 
             time.sleep(1)  # Пауза в 1 секунду
 
@@ -146,7 +135,7 @@ def on_get_remaining_time(data):
 
             # Определяем номер текущего фильма (по номеру раунда)
             current_movie_index = room_info['round']  # например, 1-й фильм на 1-м раунде, 2-й фильм на 2-м раунде
-            
+
             if current_movie_index <= MOVIE_COUNTER:
                 movie_hints = room_hints.get(current_movie_index, {})
 
@@ -185,8 +174,10 @@ def on_get_remaining_time(data):
             players_scores = []
             for player_id, answers in rooms[room_id]['players_answers'].items():
                 logging.info(f"Checking answers for player_id {player_id}: {answers}")
-
                 correct_answers_count = sum(answers.values())  # Количество правильных ответов
+                # rows_u = db.execute("SELECT username FROM users WHERE user_id = ?", player_id)
+                # player_username = rows_u[0]['username']
+                # players_scores.append((player_id, correct_answers_count, player_username))  # Добавляем в список (ID игрока, количество правильных ответов)
                 players_scores.append((player_id, correct_answers_count))  # Добавляем в список (ID игрока, количество правильных ответов)
                 logging.info(f"Player {player_id} has {correct_answers_count} correct answers.")
 
@@ -199,16 +190,17 @@ def on_get_remaining_time(data):
             leaderboard = [{
                 'user_id': player[0],
                 'correct_answers': player[1],
-                'rank': index + 1  # Индекс + 1 - это место игрока
+                'rank': index + 1,
+                # 'username': player[2]
             } for index, player in enumerate(sorted_players)]
 
             emit('game_results', {
                 'leaderboard': leaderboard
             })
+            game_data[room_id]['timer_running'] = False
             logging.info(f"Sent 'game_results' event. Leaderboard: {leaderboard}")
     else:
         start_timer(room_id)
-
         logging.error(f"Room {room_id} not found in game data.")
 
 @app.route('/api/timer', methods=['GET'])
@@ -258,6 +250,74 @@ def after_request(response):
     # старый заголовок для совместимости с http 1
     response.headers["Pragma"] = "no-cache"
     return response
+
+#def process_game_results(room_id, MOVIE_COUNTER):
+#    """
+#    Проверяет, все ли игроки завершили ответы, сортирует игроков по правильным ответам,
+#    отправляет результаты игры и очищает данные комнаты.
+#    """
+#    all_answers_submitted = True
+#    players_scores = []
+#
+#    logging.info(f"Checking if all answers have been submitted for room_id {room_id}")
+#
+#    for player_id, answers in rooms[room_id]['players_answers'].items():
+#        logging.info(f"Checking answers for player_id {player_id}: {answers}")
+#        
+#        # Проверяем, что у игрока есть ответы на все фильмы (сравниваем количество ответов с MOVIE_COUNTER)
+#        if len(answers) == MOVIE_COUNTER:  # У игрока должно быть ответов, равных количеству фильмов
+#            logging.info(f"Player {player_id} has answered all questions.")
+#            
+#            # Получаем username из базы данных
+#            rows_u = db.execute("SELECT username FROM users WHERE id = ?", player_id)
+#            username = rows_u[0]['username']
+#            logging.info(f'Username { username } fetched from DB for user { player_id }')
+#
+#            # Подсчитываем количество правильных ответов для этого игрока
+#            correct_answers_count = sum(answers.values())  # Количество правильных ответов
+#            players_scores.append((player_id, correct_answers_count, username))  # Добавляем в список (ID игрока, количество правильных ответов)
+#            logging.info(f"Player {player_id} has {correct_answers_count} correct answers.")
+#        else:
+#            all_answers_submitted = False
+#            logging.info(f"Player {player_id} has not answered all questions. Expected {MOVIE_COUNTER} answers but got {len(answers)}.")
+#            break
+#
+#    if all_answers_submitted:
+#        # Сортируем игроков по количеству правильных ответов (от большего к меньшему)
+#        sorted_players = sorted(players_scores, key=lambda x: x[1], reverse=True)
+#
+#        # Логируем перед отправкой результата
+#        logging.info(f"All players have submitted their answers. Sending game results.")
+#        
+#        # Подготовка списка победителей в формате для отображения на клиенте
+#        leaderboard = [{
+#            'user_id': player[0],
+#            'correct_answers': player[1],
+#            'username': player[2],
+#            'rank': index + 1  # Индекс + 1 - это место игрока
+#        } for index, player in enumerate(sorted_players)]
+#
+#        # Отправляем результаты игры в комнату
+#        emit('game_results', {
+#            'leaderboard': leaderboard
+#        }, room=room_id)
+#
+#        # Очищаем данные комнаты
+#        rooms[room_id] = {
+#            "creator": "",  # Оставляем создателя, если необходимо
+#            "movies": {},  # Очищаем список фильмов
+#            "players": [],  # Очищаем список игроков
+#            "players_answers": {},  # Очищаем ответы игроков
+#            "ready_players": []  # Очищаем список готовых игроков
+#        }
+#
+#        # Удаляем дополнительные данные, связанные с игрой
+#        del game_data[room_id]
+#        del game_hints[room_id]
+#
+#        logging.info(f"Sent 'game_results' event. Leaderboard: {leaderboard}")
+#    else:
+#        logging.info(f"Not all players have submitted their answers yet.")
 
 # =============================================================================
 # Основные маршруты
@@ -389,7 +449,6 @@ def handle_join_room():
     else:
         return apology("Room not found", code=404)
 
-usernames = {}
 @socketio.on('join')
 def on_join(data):
     """ join """
@@ -406,19 +465,26 @@ def on_join(data):
             player_ids = rooms[room_id]['players']
             placeholders = ', '.join('?' for _ in player_ids)
             cursor.execute(f"SELECT username FROM users WHERE id IN ({placeholders})", player_ids)
+            usernames = {}
             usernames = [username[0] for username in cursor.fetchall()]
 
             join_room(room_id)
             logging.info("\nWEBSOCKET: try to create %s for user %s.\n"
              "End of /room/<room_id> route. Render template room.html.\n",
              room_id, user_id)
-            emit('message', {
+            emit('update_ready_players', {
                 'msg': f'{user_id} has joined the room.',
                 'players': rooms[room_id]['players'],
                 'usernames': usernames,
                 'ready_players': rooms[room_id]['ready_players']
             }, room=room_id)
             conn.close()
+            if len(rooms[room_id]['ready_players']) == len(rooms[room_id]['players']):
+                # Если все игроки готовы, активируем кнопку "Начать игру" только для создателя
+                emit('enable_start_game', {'can_start': True, 'creator': rooms[room_id]['creator']}, room=room_id)
+                print(f"In {room_id} Game can be started. Ready players: {rooms[room_id]['ready_players']}, creator of the room { rooms[room_id]['creator']}")
+            else:
+                emit('enable_start_game', {'can_start': False}, room=room_id)
         else:
             logging.info("User %s already in room %s. Current players: %s",
                          user_id, room_id, rooms[room_id]['players'])
@@ -446,6 +512,7 @@ def on_leave(data):
             player_ids = rooms[room_id]['players']
             placeholders = ', '.join('?' for _ in player_ids)
             cursor.execute(f"SELECT username FROM users WHERE id IN ({placeholders})", player_ids)
+            usernames = {}
             usernames = [username[0] for username in cursor.fetchall()]
         # Отправляем обновлённый список игроков всем участникам комнаты
         emit('message', {
@@ -475,6 +542,7 @@ def on_ready(data):
             player_ids = rooms[room_id]['players']
             placeholders = ', '.join('?' for _ in player_ids)
             cursor.execute(f"SELECT username FROM users WHERE id IN ({placeholders})", player_ids)
+            usernames = {}
             usernames = [username[0] for username in cursor.fetchall()]
             print(f"User {user_id} is ready in room {room_id}. Ready players: {rooms[room_id]['ready_players']}")
 
@@ -485,6 +553,7 @@ def on_ready(data):
             player_ids = rooms[room_id]['players']
             placeholders = ', '.join('?' for _ in player_ids)
             cursor.execute(f"SELECT username FROM users WHERE id IN ({placeholders})", player_ids)
+            usernames = {}
             usernames = [username[0] for username in cursor.fetchall()]
             print(f"User {user_id} NOT ready in room {room_id}. Ready players: {rooms[room_id]['ready_players']}")
         # Оповещаем всех игроков о текущем состоянии комнаты
@@ -498,7 +567,7 @@ def on_ready(data):
         if len(rooms[room_id]['ready_players']) == len(rooms[room_id]['players']):
             # Если все игроки готовы, активируем кнопку "Начать игру" только для создателя
             emit('enable_start_game', {'can_start': True, 'creator': rooms[room_id]['creator']}, room=room_id)
-            print(f"In {room_id} Game can be started. Ready players: {rooms[room_id]['ready_players']}")
+            print(f"In {room_id} Game can be started. Ready players: {rooms[room_id]['ready_players']}, creator of the room { rooms[room_id]['creator']}")
         else:
             emit('enable_start_game', {'can_start': False}, room=room_id)
 
@@ -595,7 +664,7 @@ def game(room_id):
         logging.error("No players connected to the room %s.", room_id)
         return apology("No players in the room.", code=400)
     # Проверяем, если в комнате еще нет фильма
-    if 'movies' not in rooms[room_id]:
+    if not rooms.get(room_id, {}).get('movies'):
         movies_dict = {}
         hint_dict = {}
 
@@ -605,7 +674,7 @@ def game(room_id):
             if 'error' in movie:  # Если ошибка при получении фильма
                 logging.error(f"Error fetching random movie for room {room_id}: {movie.get('error')}")
                 return apology("Could not fetch movie details.", code=500)
-            
+
             # Сохраняем только 'original_title' для каждого фильма
             movie_title = movie.get('original_title')
             movies_dict[counter + 1] = {'original_title': movie_title}
@@ -662,22 +731,12 @@ def on_submit_answer(data):
     
     # Проверяем правильность ответа
     is_correct = answer.lower() == correct_answer.lower()
-    if is_correct == False:
-        value_of_answer = 0
-    else:
-        value_of_answer = 4 - int(step_counter)
+    value_of_answer = 0 if not is_correct else 4 - int(step_counter)
     logging.info(f"Is the answer correct? {is_correct}. Value of answer: { value_of_answer }")
     
     # Сохраняем ответ игрока
     rooms[room_id]['players_answers'][user_id][ans_counter] = value_of_answer
     logging.info(f"Updated players_answers for user_id {user_id}: {rooms[room_id]['players_answers'][user_id]}")
-    
-    # Отправляем статус игрока (правильный или неправильный ответ)
-    # emit('player_answered', {
-    #     'user_id': user_id,
-    #     'is_correct': is_correct
-    # })
-    # logging.info(f"Sent 'player_answered' event for user_id {user_id}")
     
     # Проверяем, все ли игроки завершили ответы (сравниваем с MOVIE_COUNTER)
     all_answers_submitted = True
@@ -691,10 +750,12 @@ def on_submit_answer(data):
         # Проверяем, что у игрока есть ответы на все фильмы (сравниваем количество ответов с MOVIE_COUNTER)
         if len(answers) == MOVIE_COUNTER:  # У игрока должно быть ответов, равных количеству фильмов
             logging.info(f"Player {player_id} has answered all questions.")
-            
+            rows_u = db.execute("SELECT username FROM users WHERE id = ?", player_id)
+            username = rows_u[0]['username']
+            logging.info(f'Username { username } fetched from DB for user { player_id }')
             # Подсчитываем количество правильных ответов для этого игрока
             correct_answers_count = sum(answers.values())  # Количество правильных ответов
-            players_scores.append((player_id, correct_answers_count))  # Добавляем в список (ID игрока, количество правильных ответов)
+            players_scores.append((player_id, correct_answers_count, username))  # Добавляем в список (ID игрока, количество правильных ответов)
             logging.info(f"Player {player_id} has {correct_answers_count} correct answers.")
         else:
             all_answers_submitted = False
@@ -704,7 +765,7 @@ def on_submit_answer(data):
     if all_answers_submitted:
         # Сортируем игроков по количеству правильных ответов (от большего к меньшему)
         sorted_players = sorted(players_scores, key=lambda x: x[1], reverse=True)
-        
+
         # Логируем перед отправкой результата
         logging.info(f"All players have submitted their answers. Sending game results.")
         
@@ -712,29 +773,27 @@ def on_submit_answer(data):
         leaderboard = [{
             'user_id': player[0],
             'correct_answers': player[1],
+            'username': player[2],
             'rank': index + 1  # Индекс + 1 - это место игрока
         } for index, player in enumerate(sorted_players)]
-        
+
         emit('game_results', {
             'leaderboard': leaderboard
-        })
+        }, room=room_id)
+        rooms[room_id] = {
+            "creator": "",  # Оставляем создателя, если необходимо
+            "movies": {},  # Очищаем список фильмов
+            "players": [],  # Очищаем список игроков
+            "players_answers": {},  # Очищаем ответы игроков
+            "ready_players": []  # Очищаем список готовых игроков
+        }
+
+        del game_data[room_id]
+        del game_hints[room_id]
+
         logging.info(f"Sent 'game_results' event. Leaderboard: {leaderboard}")
     else:
         logging.info(f"Not all players have submitted their answers yet.")
-
-@socketio.on('end_game')
-def on_end_game(data):
-    ''' Сокет конца игры '''
-    room_id = data['room_id']
-    correct_players = [user for user, correct in rooms[room_id]['players_answers'].items() if correct]
-    incorrect_players = [user for user, correct in rooms[room_id]['players_answers'].items() if not correct]
-    # Отправляем результаты игры
-    emit('game_results', {
-        'correct_players': correct_players,
-        'incorrect_players': incorrect_players })
-    # Возвращаем игроков в комнату
-    time.sleep(1)
-    emit('game_end', {'message': "Returning to room"})
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
