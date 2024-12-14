@@ -10,6 +10,7 @@ import logging
 import colorlog
 import time
 import threading
+import asyncio
 from dotenv import load_dotenv
 from functools import wraps
 from cs50 import SQL
@@ -40,7 +41,7 @@ TMDB_API_URL = 'https://api.themoviedb.org/3'
 IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500'
 PROXY = os.getenv('HTTP_PROXY')
 
-MOVIE_COUNTER = 1
+MOVIE_COUNTER = 2
 
 sorted_players = {}
 leaderboard = {}
@@ -50,7 +51,7 @@ leaderboard = {}
 # =============================================================================
 # Храним данные игры для каждого room_id
 game_data = {}
-
+logging.info(f"Current async mode: {socketio.async_mode}")
 # Функция для запуска таймера с несколькими раундами и шагами
 def start_timer(room_id, total_rounds=MOVIE_COUNTER, steps_per_round=3, step_duration=5):
     """
@@ -197,8 +198,8 @@ def on_get_remaining_time(data):
             emit('game_results', {
                 'leaderboard': leaderboard
             })
-
             game_data[room_id]['timer_running'] = False
+            time.sleep(5)
             rooms[room_id] = {
                 "creator": "",  # Оставляем создателя, если необходимо
                 "movies": {},  # Очищаем список фильмов
@@ -206,7 +207,6 @@ def on_get_remaining_time(data):
                 "players_answers": {},  # Очищаем ответы игроков
                 "ready_players": []  # Очищаем список готовых игроков
             }
-            time.sleep(5)
             del game_data[room_id]
             del game_hints[room_id]
             logging.info(f"Sent 'game_results' event. Leaderboard: {leaderboard}")
@@ -724,7 +724,7 @@ def on_submit_answer(data):
             'leaderboard': leaderboard
         })
         game_data[room_id]['timer_running'] = False
-
+        time.sleep(5)
         rooms[room_id] = {
             "creator": "",  # Оставляем создателя, если необходимо
             "movies": {},  # Очищаем список фильмов
@@ -732,7 +732,6 @@ def on_submit_answer(data):
             "players_answers": {},  # Очищаем ответы игроков
             "ready_players": []  # Очищаем список готовых игроков
         }
-        time.sleep(5)
         del game_data[room_id]
         del game_hints[room_id]
 
