@@ -720,11 +720,12 @@ def on_submit_answer(data):
             'rank': index + 1  # Индекс + 1 - это место игрока
         } for index, player in enumerate(sorted_players)]
         logging.info('Sending via submit_buttons')
+        # Возможно надо делать join на клиенте
         emit('game_results', {
             'leaderboard': leaderboard
         })
-        game_data[room_id]['timer_running'] = False
         time.sleep(5)
+        game_data[room_id]['timer_running'] = False
         rooms[room_id] = {
             "creator": "",  # Оставляем создателя, если необходимо
             "movies": {},  # Очищаем список фильмов
