@@ -1,16 +1,14 @@
 # app.py
 # =============================================================================
-# Зависимости
+# Dependencies
 # =============================================================================
 import os
 import sqlite3
 import random
 import requests
 import logging
-import colorlog
 import time
 import threading
-import asyncio
 from dotenv import load_dotenv
 from functools import wraps
 from cs50 import SQL
@@ -19,21 +17,21 @@ from flask_socketio import SocketIO, join_room, leave_room, send, emit
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 # =============================================================================
-# Конфигурируем приложение
+# APP config
 # =============================================================================
 app = Flask(__name__)
+db = SQL("sqlite:///imdbquiz.db")
 socketio = SocketIO(logger=True, engineio_logger=True)
 socketio = SocketIO(app)
-db = SQL("sqlite:///imdbquiz.db")
 # Конфигурируем сессии использовать ФС (вместо подписанных куки)
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_FILE_THRESHOLD"] = 100
 Session(app)
+logging.basicConfig(level=logging.INFO)
 # =============================================================================
-# Глобальные переменные
+# Global ENV
 # =============================================================================
-# Задаем данные для TMDB и proxy
 dotenv_path = '../../.env'
 load_dotenv(dotenv_path)
 TMDB_API_KEY = os.getenv('TMDB_API_KEY')
@@ -45,13 +43,12 @@ MOVIE_COUNTER = 2
 
 sorted_players = {}
 leaderboard = {}
-
-# =============================================================================
-# Таймер
-# =============================================================================
-# Храним данные игры для каждого room_id
 game_data = {}
-logging.info(f"Current async mode: {socketio.async_mode}")
+rooms = {}
+game_hints = {}
+# =============================================================================
+# Timer
+# =============================================================================
 # Функция для запуска таймера с несколькими раундами и шагами
 def start_timer(room_id, total_rounds=MOVIE_COUNTER, steps_per_round=3, step_duration=5):
     """
@@ -68,11 +65,6 @@ def start_timer(room_id, total_rounds=MOVIE_COUNTER, steps_per_round=3, step_dur
         'step_duration': step_duration,  # Продолжительность каждого шага
         'timer_running': True
     }
-    # game_hints[room_id] = {
-    #     '1_hints': ,
-    #     '2_hints': ,
-    #     '3_hints':
-    # }
 
     # Функция для обновления времени
     def update_timer():
@@ -83,11 +75,8 @@ def start_timer(room_id, total_rounds=MOVIE_COUNTER, steps_per_round=3, step_dur
             remaining_time = room_info['step_duration'] - int(elapsed_time)
 
             if remaining_time <= 0:
-                # Переходим к следующему шагу
                 room_info['step'] += 1
                 room_info['round_start_time'] = time.time()  # Сброс времени начала шага
-
-                # Если шаг завершен, передаем информацию о завершении шага
                 socketio.emit('step_finished', {'round': room_info['round'], 'step': room_info['step'] - 1}, room=room_id)
 
                 # Если все шаги в раунде завершены, переходим к следующему раунду
@@ -214,12 +203,8 @@ def on_get_remaining_time(data):
         start_timer(room_id)
         logging.error(f"Room {room_id} not found in game data.")
 
-@app.route('/api/timer', methods=['GET'])
-def get_timer():
-    ''' api для проверки состояния комнаты '''
-    return jsonify(game_data)
 # =============================================================================
-# Вспомогательные функции
+# Helpers Functions
 # =============================================================================
 def apology(message, code=400):
     """ Render message as an apology to user with a custom meme image. """
@@ -262,8 +247,18 @@ def after_request(response):
     response.headers["Pragma"] = "no-cache"
     return response
 
+@app.route('/api/timer', methods=['GET'])
+def get_timer():
+    ''' api для проверки состояния комнаты '''
+    return jsonify(game_data)
+
+@app.route('/api/rooms', methods=['GET'])
+def get_rooms():
+    ''' api для проверки состояния комнаты '''
+    return jsonify(rooms)
+
 # =============================================================================
-# Основные маршруты
+# Main routes
 # =============================================================================
 @app.route("/")
 @login_required
@@ -325,26 +320,15 @@ def register():
     else:
         return render_template("register.html")
 
-@app.route("/profile")
-@login_required
-def profile():
-    ''' Здесь будет маршрут открытия профиля '''
-    return apology("Page not found", code=404)
+# @app.route("/profile")
+# @login_required
+# def profile():
+#     ''' Здесь будет маршрут открытия профиля '''
+#     return apology("Page not found", code=404)
 
 # =============================================================================
-#   Комната
+#   Room Routes
 # =============================================================================
-
-@app.route('/api/rooms', methods=['GET'])
-def get_rooms():
-    ''' api для проверки состояния комнаты '''
-    return jsonify(rooms)
-
-# Определение основного глобального словаря комнат
-rooms = {}
-# Управление уровнем логирования
-logging.basicConfig(level=logging.INFO)
-
 @app.route("/handle_create_room", methods=['POST'])
 def handle_create_room():
     """ route для обработки кнопки createRoom в index.html. Генерирует room_id и redirect в room.html """
@@ -533,71 +517,8 @@ def on_start_game(data):
             print(f"User {user_id} tried to start the game without being the creator.")
 
 # =============================================================================
-#   Игра
+#   Game
 # =============================================================================
-# @app.route('/random_movie', methods=['GET'])
-def random_movie():
-    ''' Функция получения случайного фильма с основными актерами '''
-    page = random.randint(1, 5)
-    popular_regions = ['US', 'RU']
-    random_region = random.choice(popular_regions)
-    logging.info(f"\nCHECK ENV: {PROXY}, {TMDB_API_KEY}")
-    # Формируем URL с параметрами запроса
-    url = f"{TMDB_API_URL}/movie/popular?api_key={TMDB_API_KEY}&language=en-US&page={page}&region={random_region}&sort_by=popularity.desc"
-    logging.info(f"Fetching random movie from TMDB. URL: {url}")
-    
-    # Отправляем GET-запрос через requests
-    try:
-        response = requests.get(url, proxies={"http": PROXY, "https": PROXY} if PROXY else None)
-        response.raise_for_status()  # Проверка успешности запроса
-
-        movies_data = response.json()  # Парсим JSON
-        movies = movies_data.get('results', [])
-
-        if movies:
-            movie = random.choice(movies)  # Случайный фильм из полученного списка
-            logging.info(f"Successfully fetched random movie: {movie['original_title']}")
-
-            # Получаем информацию об актерах фильма
-            movie_id = movie['id']  # ID фильма для дальнейшего запроса
-            cast_url = f"{TMDB_API_URL}/movie/{movie_id}/credits?api_key={TMDB_API_KEY}&language=en-US"
-            cast_response = requests.get(cast_url, proxies={"http": PROXY, "https": PROXY} if PROXY else None)
-            cast_response.raise_for_status()  # Проверка успешности запроса
-
-            cast_data = cast_response.json()
-            actors = cast_data.get('cast', [])
-            top_actors = [{'name': actor['name'], 'character': actor['character'], 'profile_path': actor.get('profile_path')} for actor in actors[:4]]  # Получаем первых 5 актеров
-
-            poster_path = movie.get('poster_path')
-
-            if poster_path:
-                image_url = f"{IMAGE_BASE_URL}{poster_path}"
-            else:
-                image_url = "https://via.placeholder.com/500x750"
-
-            movie['poster_path'] = image_url
-            # Включаем актеров в ответ
-            movie['actors'] = top_actors
-            logging.info(f"Successfully fetched actors for movie: {movie['original_title']}")
-            return movie  # Отправляем фильм и актеров в формате JSON
-        else:
-            logging.error("No movies found in the response.")
-            return {'error': 'No movies found'}, 404
-
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error fetching data from TMDB: {str(e)}")
-        return {'error': f'Error fetching data from TMDB: {str(e)}'}, 500
-    #movie = {
-    #    'id': 12345,
-    #    'release_date': '2023-01-01',
-    #    'vote_average': 8.5,
-    #    'overview': 'A great movie!',
-    #    'original_title': 'Test Movie'
-    #}
-    #logging.info(f"Movie selected: {movie}")
-    #return movie
-game_hints = {}
-
 @app.route('/game/<room_id>', methods=['GET'])
 @login_required
 def game(room_id):
@@ -652,7 +573,6 @@ def game(room_id):
         game_hints[room_id] = hint_dict
 
         logging.info(f'game_hints for room {room_id}: {game_hints[room_id]}')
-
 
         # Передаем фильмы в шаблон
         return render_template('game.html', room_id=room_id, movies=rooms[room_id]['movies'])
@@ -711,7 +631,7 @@ def on_submit_answer(data):
 
         # Логируем перед отправкой результата
         logging.info(f"All players have submitted their answers. Sending game results.")
-        
+
         # Подготовка списка победителей в формате для отображения на клиенте
         leaderboard = [{
             'user_id': player[0],
@@ -739,6 +659,61 @@ def on_submit_answer(data):
         logging.info(f"Sent 'game_results' event. Leaderboard: {leaderboard}")
     else:
         logging.info(f"Not all players have submitted their answers yet.")
+
+# =============================================================================
+#   Get film function
+# =============================================================================
+def random_movie():
+    ''' Функция получения случайного фильма с основными актерами '''
+    page = random.randint(1, 5)
+    popular_regions = ['US', 'RU']
+    random_region = random.choice(popular_regions)
+    logging.info(f"\nCHECK ENV: {PROXY}, {TMDB_API_KEY}")
+    # Формируем URL с параметрами запроса
+    url = f"{TMDB_API_URL}/movie/popular?api_key={TMDB_API_KEY}&language=en-US&page={page}&region={random_region}&sort_by=popularity.desc"
+    logging.info(f"Fetching random movie from TMDB. URL: {url}")
+    
+    # Отправляем GET-запрос через requests
+    try:
+        response = requests.get(url, proxies={"http": PROXY, "https": PROXY} if PROXY else None)
+        response.raise_for_status()  # Проверка успешности запроса
+
+        movies_data = response.json()  # Парсим JSON
+        movies = movies_data.get('results', [])
+
+        if movies:
+            movie = random.choice(movies)  # Случайный фильм из полученного списка
+            logging.info(f"Successfully fetched random movie: {movie['original_title']}")
+
+            # Получаем информацию об актерах фильма
+            movie_id = movie['id']  # ID фильма для дальнейшего запроса
+            cast_url = f"{TMDB_API_URL}/movie/{movie_id}/credits?api_key={TMDB_API_KEY}&language=en-US"
+            cast_response = requests.get(cast_url, proxies={"http": PROXY, "https": PROXY} if PROXY else None)
+            cast_response.raise_for_status()  # Проверка успешности запроса
+
+            cast_data = cast_response.json()
+            actors = cast_data.get('cast', [])
+            top_actors = [{'name': actor['name'], 'character': actor['character'], 'profile_path': actor.get('profile_path')} for actor in actors[:4]]  # Получаем первых 5 актеров
+
+            poster_path = movie.get('poster_path')
+
+            if poster_path:
+                image_url = f"{IMAGE_BASE_URL}{poster_path}"
+            else:
+                image_url = "https://via.placeholder.com/500x750"
+
+            movie['poster_path'] = image_url
+            # Включаем актеров в ответ
+            movie['actors'] = top_actors
+            logging.info(f"Successfully fetched actors for movie: {movie['original_title']}")
+            return movie  # Отправляем фильм и актеров в формате JSON
+        else:
+            logging.error("No movies found in the response.")
+            return {'error': 'No movies found'}, 404
+
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error fetching data from TMDB: {str(e)}")
+        return {'error': f'Error fetching data from TMDB: {str(e)}'}, 500
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
