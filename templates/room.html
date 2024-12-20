@@ -10,13 +10,11 @@
     <p>Players in the room:</p>
     <ul id="players">
         {% for player in rooms['players'] %}
-            <li>{{ player.name }} - ID {{ player.id }} ({{ player.ready_status }})</li>
+            <li>{{ player.name }}: {{ player.ready_status }}</li>
         {% endfor %}
     </ul>
     <button id="leaveRoom" class="btn btn-danger" href="/">Leave Room</button>
-    <!-- Кнопка "Готов" для всех игроков -->
     <button id="readyButton" class="btn">Ready</button>
-    <!-- Кнопка "Начать игру" для создателя -->
     <button id="startGameButton" class="btn btn-primary" disabled hidden>Start Game</button>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
@@ -39,7 +37,8 @@
                     var li = document.createElement('li');
                     var username = data.usernames[index];
                     var readyStatus = data.ready_players.includes(playerId) ? "Ready" : "Not Ready";
-                    li.textContent = `${username} - ID ${playerId} (${readyStatus})`;
+                    // li.textContent = `${username} - ID ${playerId} (${readyStatus})`;
+                    li.textContent = `${username}: ${readyStatus}`;
                     playersList.appendChild(li);
                 });
             }
@@ -76,7 +75,8 @@
                 var li = document.createElement('li');
                 var username = usernames[index];
                 var readyStatus = readyPlayers.includes(playerId) ? "Ready" : "Not Ready";
-                li.textContent = `${username} - ID ${playerId} (${readyStatus})`;
+                // li.textContent = `${username} - ID ${playerId} (${readyStatus})`;
+                li.textContent = `${username}: ${readyStatus}`;
                 playersList.appendChild(li);
             });
             socket.emit('enable_start_game', { room_id: room_id });

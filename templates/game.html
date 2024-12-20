@@ -71,7 +71,7 @@
         function requestRemainingTime(room_id) {
             setInterval(() => {
                 if (TimerActive === true) {
-                    console.log(`Время запрошено потому что ${TimerActive}`);
+                    console.log(`Время запрошено потому что ${TimerActive} и ${room_id}`);
                     socket.emit('get_remaining_time', { room_id: room_id });
                 }
             }, 1000);  // Запрос каждую секунду

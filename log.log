@@ -1,60 +1,64 @@
-mkdir imdbquiz
-cd imdbquiz
-mkdir backend
-cd backend
-npm init -y
-npm install express
-npm install --save-dev nodemon
-npm install dotenv
-npm install cors
+sudo apt install python3-flask
+pip install cs50
+pip install Flask
+pip install Flask-Session
+pip install Werkzeug
+pip install pylint
 
-vi package.json
-  "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-code index.js
-code .env
-code server.js
-npm run dev
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+vi ~/.pip/pip.conf
+[global]
+timeout = 60
+index-url = https://pypi.tuna.tsinghua.edu.cn/simple
+pip freeze
+pylint --generate-rcfile > .pylintrc
+vi .pylintrc
+max-line-length=160
 
-cd imdbquiz
-npx create-react-app frontend
-cd frontend/
-npm install dotenv
-npm install react-router-dom
-code .env
-code index.js
-code App.js
-mkdir photos
-mkdir components
-code components/Layout.js
-code components/HomePage.js
+открыл порт 5000 на windows
+в powershell netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=5000 connectaddress=172.18.219.234 connectport=5000 прокинул порт
+pip install flask-shell
+
+curl -X GET "https://api.themoviedb.org/3/movie/popular?api_key=eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI2OWM2YjkzNjI4NzJmOGI3ZDk4ZWZmZWM1YmFkZGRkNiIsIm5iZiI6MTczMTc3NTk2MC41NzA4NDA0LCJzdWIiOiI2NzFkZmY1Nzc2OTEwN2Q3N2I0ODA5MmMiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.GeVRHqoKThIpLXc5r5JUFAoLUELX6AwRf2SONNQ2oaQ&language=en-US&page=1"
+
+curl -X GET "https://api.themoviedb.org/3/movie/popular?api_key=69c6b9362872f8b7d98effec5badddd6&language=en-US&page=1"
+
+curl -x https://eWSWGwq8:dWAf82nT@142.252.107.240:63690 https://api.themoviedb.org/3/movie/popular?api_key=69c6b9362872f8b7d98effec5badddd6&language=en-US&page=1
 
 
-Старый проект
-// Фиксация версий: package-lock.json фиксирует точные версии всех установленных пакетов и их зависимостей. Это помогает избежать ситуаций, когда на разных машинах зависимости будут разных версий, что может вызвать непредсказуемое поведение.
-// Оптимизация установки: При последующем запуске npm install, package-lock.json помогает npm быстрее установить зависимости, так как файл содержит детальное описание всех пакетов.
-// Защита от несовместимых обновлений: Если какой-то пакет будет обновлен до несовместимой версии, package-lock.json сохранит текущую версию, обеспечивая стабильность проекта.
+curl -x socks5h://142.252.107.240:63691 --proxy-user eWSWGwq8:dWAf82nT "https://api.themoviedb.org/3/movie/popular?api_key=69c6b9362872f8b7d98effec5badddd6&language=en-US&page=1"
 
-cd backend/
-npm install sqlite3
-code database.js
-npm install axios
-code tmdbService.js
 
-code frontend/package.json
-# добавили прокси http://localhost:3000/api/players
+curl.exe -x socks5h://166.1.128.144:64045 --proxy-user eWSWGwq8:dWAf82nT "https://api.themoviedb.org/3/movie/popular?api_key=69c6b9362872f8b7d98effec5badddd6&language=en-US&page=1"
 
-# пробуем сделать главный экран в новой ветке mainscreen
-code frontend/src/components/MainScreen.js
-code frontend/src/App.js
-code ../frontend/src/contexts/LanguageContext.js
+curl.exe -x http://166.1.128.144:64044 --proxy-user eWSWGwq8:dWAf82nT "https://api.themoviedb.org/3/movie/popular?api_key=69c6b9362872f8b7d98effec5badddd6&language=en-US&page=1"
 
-mkdir ../data/
-sudo apt update
-sudo apt install sqlite3
-chmod 755 data
-chmod 644 data/imdbquiz.db
-npm install sqlite3
+curl.exe -x https://166.1.128.144:64044 --proxy-user eWSWGwq8:dWAf82nT "https://api.themoviedb.org/3/movie/popular?api_key=69c6b9362872f8b7d98effec5badddd6&language=en-US&page=1"
+
+
+
+#@app.route('/random_movie_curl', methods=['GET'])
+#def random_movie_curl():
+#    page = random.randint(1, 20)
+#
+#    curl_command = [
+#        "curl", 
+#        "-x", PROXY,  # Прокси-сервер
+#        f"{TMDB_API_URL}/movie/popular?api_key={TMDB_API_KEY}&language=en-US&page={page}"  # Параметры запроса
+#    ]
+#
+#    try:
+#        result = subprocess.run(curl_command, capture_output=True, text=True, check=True)
+#
+#        movies_data = json.loads(result.stdout)
+#        movies = movies_data.get('results', [])
+#
+#        if movies:
+#            random_movie = random.choice(movies)  # Случайный фильм из полученного списка
+#            return jsonify(random_movie)  # Отправляем случайный фильм в формате JSON
+#        else:
+#            return jsonify({'error': 'No movies found'}), 404
+#
+#    except subprocess.CalledProcessError as e:
+#        return jsonify({'error': f'Error executing curl: {e.stderr}'}), 500
+#
