@@ -175,7 +175,7 @@ ul#players li:last-child {
 
 /* Для кнопки "Go to Next Room" */
 #nextRoomButton {
-    background-color: #0a7e9f;
+    background-color: #6c5b3d;
     color: #ffffff;
     font-size: 1.2rem;
     text-transform: uppercase;
@@ -191,7 +191,7 @@ ul#players li:last-child {
 }
 
 #nextRoomButton:hover {
-    background-color: #0f6b84;
+    background-color: #c97b5d;;
     transform: scale(1.05);
 }
 
@@ -274,4 +274,77 @@ h1, h2 {
     height: 100%;
     object-fit: cover;  /* Чтобы изображение заполнило контейнер */
     border-radius: 8px;
+}
+
+/* Стили для таблицы лидеров */
+#game-leaderboard {
+    font-family: 'Georgia', serif;
+    font-size: 2.5rem;
+    text-align: center;
+    color: #3e3e3e;
+    margin: 20px 0;
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Стили для таблицы результатов */
+#table-leaderboard {
+    width: 80%;
+    margin: 0 auto;
+    border-collapse: collapse;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    background-color: #f4f1eb;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#table-leaderboard th, 
+#table-leaderboard td {
+    padding: 15px;
+    text-align: center;
+    font-size: 1.2rem;
+}
+
+#table-leaderboard th {
+    background-color: #c97b5d;
+    color: #fff;
+    text-transform: uppercase;
+    font-weight: bold;
+    border-bottom: 3px solid #d1a800;
+}
+
+#table-leaderboard td {
+    color: #3e3e3e;
+    background-color: #f4f1eb;
+    border-bottom: 1px solid #d1a800;
+}
+
+#table-leaderboard tr:nth-child(even) td {
+    background-color: #ece0d7;
+}
+
+#table-leaderboard tr:hover td {
+    background-color: #d1a800;
+    color: #fff;
+    transition: background-color 0.3s;
+}
+
+/* Для контейнера таблицы */
+#table-leaderboard-container {
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    background-color: #f1e6b8;
+}
+
+/* Анимация при отображении таблицы */
+#table-leaderboard[hidden] {
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+#table-leaderboard:not([hidden]) {
+    opacity: 1;
+    transform: translateY(0);
 }

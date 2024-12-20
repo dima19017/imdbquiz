@@ -50,7 +50,7 @@ game_hints = {}
 # Timer
 # =============================================================================
 # Функция для запуска таймера с несколькими раундами и шагами
-def start_timer(room_id, total_rounds=MOVIE_COUNTER, steps_per_round=3, step_duration=5):
+def start_timer(room_id, total_rounds=MOVIE_COUNTER, steps_per_round=3, step_duration=8):
     """
     Запускает таймер с несколькими раундами и шагами в каждом раунде.
     Каждый шаг длится step_duration секунд (по умолчанию 30 секунд).
@@ -257,6 +257,10 @@ def get_rooms():
     ''' api для проверки состояния комнаты '''
     return jsonify(rooms)
 
+@app.route('/api/hints', methods=['GET'])
+def get_hints():
+    ''' api для проверки состояния комнаты '''
+    return jsonify(game_hints)
 # =============================================================================
 # Main routes
 # =============================================================================
@@ -265,7 +269,8 @@ def get_rooms():
 def index():
     ''' Вывод главной страницы '''
     user_id = session["user_id"]
-    return render_template("index.html", user_id=user_id)
+    username = session["username"]
+    return render_template("index.html", user_id=user_id, username=username)
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -575,6 +580,8 @@ def game(room_id):
         logging.info(f'game_hints for room {room_id}: {game_hints[room_id]}')
 
         # Передаем фильмы в шаблон
+        return render_template('game.html', room_id=room_id, movies=rooms[room_id]['movies'])
+    else:
         return render_template('game.html', room_id=room_id, movies=rooms[room_id]['movies'])
 
 @socketio.on('submit_answer')
