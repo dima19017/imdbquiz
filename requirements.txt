@@ -5,6 +5,7 @@ pytz
 requests
 Werkzeug
 Flask-socketio
+Flask-login
 pylint
 colorlog
-dotenv
+python-dotenv

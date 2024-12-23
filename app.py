@@ -13,7 +13,8 @@ from dotenv import load_dotenv
 from functools import wraps
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session, url_for, jsonify
-from flask_socketio import SocketIO, join_room, leave_room, send, emit
+from flask_socketio import SocketIO, join_room, leave_room, send, emit, disconnect
+from flask_login import current_user
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 # =============================================================================
@@ -225,14 +226,23 @@ def apology(message, code=400):
     return render_template("apology.html", top=code, bottom=escape(message), message=message), code
 
 def login_required(f):
-    """ Decorate routes to require login.
-    https://flask.palletsprojects.com/en/latest/patterns/viewdecorators/ """
+    """ Decorate routes to require login. https://flask.palletsprojects.com/en/latest/patterns/viewdecorators/ """
     @wraps(f)
     def decorate_function(*args, **kwargs):
         if session.get("user_id") is None:
             return redirect("/login")
         return f(*args, **kwargs)
     return decorate_function
+
+def authenticated_only(f):
+    """ custom decorator that disconnects non-authenticated users with @authenticated_only """
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        if not current_user.is_authenticated:
+            disconnect()
+        else:
+            return f(*args, **kwargs)
+    return wrapped
 
 @app.after_request
 def after_request(response):
@@ -544,9 +554,9 @@ def game(room_id):
                 logging.error(f"Error fetching random movie for room {room_id}: {movie.get('error')}")
                 return apology("Could not fetch movie details.", code=500)
 
-            # Сохраняем только 'original_title' для каждого фильма
-            movie_title = movie.get('original_title')
-            movies_dict[counter + 1] = {'original_title': movie_title}
+            # Сохраняем только 'title' для каждого фильма
+            movie_title = movie.get('title')
+            movies_dict[counter + 1] = {'title': movie_title}
 
             # Извлекаем данные о фильме
             release_date = movie.get('release_date')
@@ -596,7 +606,7 @@ def on_submit_answer(data):
     # Логируем входные данные
     logging.info(f"Received answer submission for room_id: {room_id}, user_id: {user_id}, answer: {answer}, answer_counter: {ans_counter}, step_counter: { step_counter }")
     
-    correct_answer = rooms[room_id]['movies'][ans_counter]['original_title']
+    correct_answer = rooms[room_id]['movies'][ans_counter]['title']
     logging.info(f"Correct answer for movie {ans_counter}: {correct_answer}")
     
     # Проверяем правильность ответа
@@ -690,7 +700,7 @@ def random_movie():
 
         if movies:
             movie = random.choice(movies)  # Случайный фильм из полученного списка
-            logging.info(f"Successfully fetched random movie: {movie['original_title']}")
+            logging.info(f"Successfully fetched random movie: {movie['title']}")
 
             # Получаем информацию об актерах фильма
             movie_id = movie['id']  # ID фильма для дальнейшего запроса
@@ -712,7 +722,7 @@ def random_movie():
             movie['poster_path'] = image_url
             # Включаем актеров в ответ
             movie['actors'] = top_actors
-            logging.info(f"Successfully fetched actors for movie: {movie['original_title']}")
+            logging.info(f"Successfully fetched actors for movie: {movie['title']}")
             return movie  # Отправляем фильм и актеров в формате JSON
         else:
             logging.error("No movies found in the response.")
