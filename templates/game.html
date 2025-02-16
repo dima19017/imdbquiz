@@ -67,6 +67,8 @@
         let totalRounds = 0;
         let canSubmitAnswer = true;
 
+        socket.emit('start_main_game', { room_id: room_id })
+
         // Функция для запроса оставшегося времени каждую секунду
         function requestRemainingTime(room_id) {
             setInterval(() => {
