@@ -110,6 +110,12 @@ def start_timer(room_id, total_rounds=MOVIE_COUNTER, steps_per_round=3, step_dur
     # Запускаем таймер в отдельном потоке, чтобы не блокировать сервер
     threading.Thread(target=update_timer, daemon=True).start()
 
+@socketio.on('start_main_game')
+def start_main_game(room_id):
+    if room_id not in game_data[room_id]:
+        start_timer(room_id)
+
+
 # Обработчик запроса оставшегося времени
 @socketio.on('get_remaining_time')
 def on_get_remaining_time(data):
